@@ -24,8 +24,8 @@ public class Proc {
         #endif
     }
     
-    private static var signalsWatchers = [(Int32) -> Void]()
-    private static var signalsObserved = false
+    nonisolated(unsafe) private static var signalsWatchers = [(Int32) -> Void]()
+    nonisolated(unsafe) private static var signalsObserved = false
     
     public static func watchSignals(_ callback: @escaping (Int32) -> Void) {
         if !signalsObserved {

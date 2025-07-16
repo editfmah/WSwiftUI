@@ -38,9 +38,8 @@ public enum HttpResponseBody {
     
     case json(Encodable)
     case html(String)
-    case htmlBody(String)
     case text(String)
-    case data(Data,String)
+    case data(Data,_ mime: String, _ filename: String?)
     case custom(Any, (Any) throws -> String)
     
     func content() -> (Int, ((HttpResponseBodyWriter) throws -> Void)?) {
@@ -65,13 +64,7 @@ public enum HttpResponseBody {
                 return (data.count, {
                     try $0.write(data)
                 })
-            case .htmlBody(let body):
-                let serialised = "<html><meta charset=\"UTF-8\"><body>\(body)</body></html>"
-                let data = [UInt8](serialised.utf8)
-                return (data.count, {
-                    try $0.write(data)
-                })
-            case .data(let data, _):
+            case .data(let data, _, _):
                 return (data.count, {
                     try $0.write(data)
                 })
@@ -95,7 +88,7 @@ public enum HttpResponseBody {
 public enum HttpResponse {
     
     case switchProtocols([String: String], (Socket) -> Void)
-    case ok(HttpResponseBody,String?), created, accepted
+    case ok(HttpResponseBody, String?), created, accepted
     case movedPermanently(String)
     case movedTemporarily(String)
     case badRequest(HttpResponseBody?)
@@ -105,84 +98,102 @@ public enum HttpResponse {
     case busy(HttpResponseBody?)
     case internalServerError
     case raw(Int, String, [String:String]?, ((HttpResponseBodyWriter) throws -> Void)? )
-    case redirect(String,String?)
+    case redirect(String, String?)
     case tooManyRequests
     
     public var statusCode: Int {
         switch self {
-        case .switchProtocols         : return 101
-        case .ok                      : return 200
-        case .created                 : return 201
-        case .accepted                : return 202
-        case .movedPermanently        : return 301
-        case .redirect                : return 303
-        case .movedTemporarily        : return 307
-        case .badRequest              : return 400
-        case .unauthorized            : return 401
-        case .forbidden               : return 403
-        case .notFound                : return 404
-        case .internalServerError     : return 500
-        case .busy                    : return 503
-        case .raw(let code, _, _, _)  : return code
-        case .tooManyRequests         : return 429
+            case .switchProtocols         : return 101
+            case .ok                      : return 200
+            case .created                 : return 201
+            case .accepted                : return 202
+            case .movedPermanently        : return 301
+            case .redirect                : return 303
+            case .movedTemporarily        : return 307
+            case .badRequest              : return 400
+            case .unauthorized            : return 401
+            case .forbidden               : return 403
+            case .notFound                : return 404
+            case .internalServerError     : return 500
+            case .busy                    : return 503
+            case .raw(let code, _, _, _)  : return code
+            case .tooManyRequests         : return 429
         }
     }
     
     public var reasonPhrase: String {
         switch self {
-        case .switchProtocols          : return "Switching Protocols"
-        case .ok                       : return "OK"
-        case .created                  : return "Created"
-        case .accepted                 : return "Accepted"
-        case .movedPermanently         : return "Moved Permanently"
-        case .movedTemporarily         : return "Moved Temporarily"
-        case .badRequest               : return "Bad Request"
-        case .unauthorized             : return "Unauthorized"
-        case .forbidden                : return "Forbidden"
-        case .redirect                 : return "Redirect"
-        case .notFound                 : return "Not Found"
-        case .internalServerError      : return "Internal Server Error"
-        case .busy                     : return "Server Busy"
-        case .tooManyRequests          : return "Too many requests"
-        case .raw(_, let phrase, _, _) : return phrase
+            case .switchProtocols          : return "Switching Protocols"
+            case .ok                       : return "OK"
+            case .created                  : return "Created"
+            case .accepted                 : return "Accepted"
+            case .movedPermanently         : return "Moved Permanently"
+            case .movedTemporarily         : return "Moved Temporarily"
+            case .badRequest               : return "Bad Request"
+            case .unauthorized             : return "Unauthorized"
+            case .forbidden                : return "Forbidden"
+            case .redirect                 : return "Redirect"
+            case .notFound                 : return "Not Found"
+            case .internalServerError      : return "Internal Server Error"
+            case .busy                     : return "Server Busy"
+            case .tooManyRequests          : return "Too many requests"
+            case .raw(_, let phrase, _, _) : return phrase
         }
     }
     
     public func headers() -> [(header: String, value: String)] {
         var headers: [(String, String)] = []
-        headers.append(("Server", "MyProbation \(HttpServer.VERSION)"))
+        headers.append(("Server", "WebSwiftUI \(HttpServer.VERSION)"))
         switch self {
         case .switchProtocols(let switchHeaders, _):
             for (key, value) in switchHeaders {
                 headers.append((key, value))
             }
-        case .ok(let body, let authToken):
+        case .ok(let body, let auth):
             switch body {
             case .json: headers.append(("Content-Type","application/json"))
             case .html: headers.append(("Content-Type","text/html"))
-            case .data(_,let mime):
-                headers.append(("Content-Type",mime))
+            case .data(_,let mime, let filename):
+                headers.append(("Content-Type", mime))
+                    if let filename {
+                        headers.append(("Content-Disposition", "inline; filename=\"\(filename)\""))
+                    }
             default:break
             }
-            
-            if let cookieAuth = authToken {
-                headers.append(("Set-Cookie", "AuthToken=\(cookieAuth); SameSite=Lax; Secure; Path=/; expires=84600;"))
-            } else {
-                headers.append(("Set-Cookie", "AuthToken=; SameSite=Lax; Secure; Path=/; expires=84600;"))
-            }
-            
+                if let cookieAuth = auth {
+                    // Set a live cookie that lasts for 24 h (86 400 s)
+                    headers.append((
+                      "Set-Cookie",
+                      "AuthToken=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=86400;"
+                    ))
+                } else {
+                    // Clear the cookie immediately
+                    headers.append((
+                      "Set-Cookie",
+                      "AuthToken=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0;"
+                    ))
+                }
+
         case .movedPermanently(let location):
             headers.append(("Location",location))
         case .movedTemporarily(let location):
             headers.append(("Location",location))
-        case .redirect(let location, let authToken):
-            headers.append(("Location",location))
-            if let cookieAuth = authToken {
-                headers.append(("Set-Cookie", "AuthToken=\(cookieAuth); SameSite=Lax; Secure; Path=/; expires=84600;"))
-            } else {
-                headers.append(("Set-Cookie", "AuthToken=; SameSite=Lax; Secure; Path=/; expires=84600;"))
-            }
+        case .redirect(let location, let auth):
+                if let cookieAuth = auth {
+                    // Set a live cookie that lasts for 24 h (86 400 s)
+                    headers.append((
+                      "Set-Cookie",
+                      "AuthToken=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=86400"
+                    ))
+                } else {
+                    // Clear the cookie immediately
+                    headers.append((
+                      "Set-Cookie",
+                      "AuthToken=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0"
+                    ))
+                }
 
+            headers.append(("Location",location))
         case .raw(_, _, let rawHeaders, _):
             if let rawHeaders = rawHeaders {
                 for (key, value) in rawHeaders {

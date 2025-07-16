@@ -8,5 +8,4 @@
 public protocol MenuIndexable {
     var menuPrimary: String { get }
     var menuSecondary: String? { get }
-    var itemVisibility: [WebAuthenticationStatus] { get }
 }

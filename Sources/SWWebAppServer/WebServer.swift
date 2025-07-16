@@ -1,55 +1,263 @@
 import Foundation
 
+private extension HttpRequest {
+    var authenticationToken: String? {
+        get {
+            // check the headers for an authentication token
+            if let authHeader = self.headers["Authorization"] {
+                // strip the bearer part
+                let components = authHeader.split(separator: " ")
+                guard components.count == 2, components[0].lowercased() == "bearer" else {
+                    return nil
+                }
+                // return the token part
+                return String(components[1])
+            }
+            // check the query parameters
+            if let token = self.queryparams["token"] {
+                return token
+            }
+            // check cookies
+            if let cookie = self.cookieData()["AuthToken"] {
+                return cookie
+            }
+            return nil
+        }
+    }
+}
+
 public class SWWebAppServer {
     
     // endpoint registration
-    private var endpoints: [String : WebEndpoint.Type] = [:]
+    private var mutex: Mutex = Mutex()
+    private var endpoints: [WebEndpoint] = []
     
-    public func register(_ endpoint: WebEndpoint.Type) {
+    public func register(_ newEndpoint: WebEndpoint) {
+        
+        let instance = newEndpoint.create()
+        
         
         // calculate the path from the controller and method
-        var path = "/"
-        if let module = endpoint.controller {
-            path += module
-            if let controller = endpoint.method {
-                path += "/"
-                path += controller
-            }
-        } else if let controller = endpoint.method {
-            path += controller
+        let path = instance.path
+        mutex.execute {
+            endpoints.append( instance )
         }
         
-        endpoints[path] = endpoint
+        let callback: ((HttpRequest) -> HttpResponse) = { [self] request in
+            
+            let action = WebRequestActivity.from(request: request)
+            var endpoint = newEndpoint.create()
+            var grants: [String] = []
+            
+            if endpoint.authenticationRequired {
+                if let token = request.authenticationToken, let authenticator = self.getUserRoles, let currentGrants = authenticator(token, endpoint) {
+                    grants = currentGrants
+                } else {
+                    return .forbidden(.text("Authentication failed. Please log in again."))
+                }
+            }
+            
+            // we've passed authentication, next check the permissions for the user vs the required permissions.
+            
+            if let content = endpoint as? WebContentEndpoint {
+                if let permissions = content.acceptedRoles(for: action) {
+                    if permissions.isEmpty == false {
+                        // get the authenticated permissions/grants
+                        if grants.containsAny(permissions) == false {
+                            return .forbidden(.text("You do not have permission to perform this action."))
+                        }
+                    }
+                }
+            } else if let api = endpoint as? WebApiEndpoint {
+                if let permissions = api.acceptedRoles() {
+                    if permissions.isEmpty == false {
+                        // get the authenticated permissions/grants
+                        if grants.containsAny(permissions) == false {
+                            return .forbidden(.text("You do not have permission to perform this action."))
+                        }
+                    }
+                }
+            }
+            
+            // populate the handler
+            endpoint.request = request
+            
+            if var contentEndpoint = endpoint as? WebContentEndpoint {
+                // set the content handler
+                contentEndpoint.ephemeralData["user_roles"] = grants
+            }
+            
+            // build the menu structure
+            var menus: [MenuEntry] = []
+            mutex.execute {
+                
+                var available: [WebEndpoint] = []
+                
+                for (e) in endpoints {
+                    
+                    if let menuEndpoint = e as? MenuIndexable {
+                        
+                        // we now need to check if we have permissions to see it
+                        if e.authenticationRequired {
+                            
+                            // cast the object into a cotent or api
+                            if let content = e as? WebContentEndpoint {
+                                if let permissions = content.acceptedRoles(for: action) {
+                                    if permissions.isEmpty == false {
+                                        // get the authenticated permissions/grants
+                                        if grants.containsAny(permissions) == false {
+                                            continue // skip this item
+                                        }
+                                    }
+                                }
+                            }
+                            
+                        }
+                        
+                        // we are here so it should be shown in the menu structure, but could be a child of one that does not exist yet. Urgh.
+                        available.append(e)
+                        
+                    }
+                    
+                }
+                
+                // now we go through the available endpoints in the tuple and build up the menu structure, and find all the primary entries and create them
+                
+                var primaries: [String] = []
+                
+                for e in available {
+                    
+                    // it has to be content and it has to be indexable
+                    guard let menuEndpoint = e as? MenuIndexable else { continue }
+                    guard let contentEndpoint = e as? WebContentEndpoint else { continue }
+                    
+                    if primaries.contains(menuEndpoint.menuPrimary) == false {
+                        
+                        // we have a new one, we can go ahead and create the primary entry
+                        primaries.append(menuEndpoint.menuPrimary)
+                        
+                        // now the menu entry as well
+                        let entry = MenuEntry()
+                        entry.title = menuEndpoint.menuPrimary
+                        entry.path = e.path
+                        
+                        menus.append(entry)
+                        
+                    }
+                    
+                }
+                
+                // now we are going to add in secondary entries to the primary ones
+                for e in available {
+                    
+                    guard let menuEndpoint = e as? MenuIndexable else { continue }
+                    guard let contentEndpoint = e as? WebContentEndpoint else { continue }
+                    
+                    // find the primary entry
+                    if let primaryEntry = menus.first(where: { $0.title == menuEndpoint.menuPrimary }) {
+                        
+                        // there must be a secondary title
+                        if let secondary = menuEndpoint.menuSecondary, secondary.isEmpty == false {
+                            
+                            // now we can add the secondary entry
+                            let secondaryEntry = MenuEntry()
+                            secondaryEntry.title = secondary
+                            secondaryEntry.path = e.path
+                            secondaryEntry.header = false
+                            
+                            // now we can add it to the primary entry
+                            primaryEntry.children.append(secondaryEntry)
+                            
+                        }
+                        
+                    }
+                }
+            }
+            
+            if var endpoint = endpoint as? BaseWebEndpoint {
+                endpoint.ephemeralData["menu_data"] = menus
+            }
+            
+            // now make the onAccept callback if its setup
+            if let onAccept = self.onAccept {
+                onAccept(endpoint)
+            }
+            
+            // now execute and return the correct method
+            if let endpoint = endpoint as? BaseWebEndpoint {
+                
+                var response: Any? = nil
+                
+                switch action {
+                    case .Content:
+                        response = endpoint.content()
+                    case .View:
+                        response = endpoint.view()
+                    case .Modify:
+                        response = endpoint.modify()
+                    case .New:
+                        response = endpoint.new()
+                    case .Save:
+                        response = endpoint.save()
+                    case .Delete:
+                        response = endpoint.delete()
+                    case .Raw:
+                        response = endpoint.raw()
+                }
+                
+                // if we have a response, return it
+                if let response = response as? HttpResponse {
+                    // check to see if there was a new auth token set
+                    return response
+                } else if let response = response as? WebCoreElement {
+                    
+                    // build the html response from the response object
+                    if let endpoint = endpoint as? BaseWebEndpoint {
+                        let pageContent = endpoint.renderWebPage()
+                        return HttpResponse.ok(.html(pageContent), endpoint.newAuthenticationIdentifier ?? endpoint.newAuthenticationIdentifier)
+                    }
+                    
+                } else if let response = response as? Codable {
+                    return HttpResponse.ok(.json(response), endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier)
+                }
+                
+                return .notFound
+                
+            }
+            
+            return .notFound
+            
+        }
+        
+        svr.get[path] = callback
+        svr.post[path] = callback
+        svr.delete[path] = callback
+        svr.patch[path] = callback
+        svr.options[path] = callback
+        svr.head[path] = callback
+        print("Registered endpoint \(newEndpoint) at path \(path)")
+        
+        
     }
     
-    public func unregister(_ endpoint: WebEndpoint.Type) {
+    public func unregister(_ endpoint: WebEndpoint) {
         
         // calculate the path from the controller and method
-        var path = "/"
-        if let module = endpoint.controller {
-            path += module
-            if let controller = endpoint.method {
-                path += "/"
-                path += controller
-            }
-        } else if let controller = endpoint.method {
-            path += controller
-        }
+        let path = endpoint.path
         
-        endpoints.removeValue(forKey: path)
     }
     
-    private var authenticationVerification: ((String) -> Bool)? = nil
+    private var getUserRoles: ((String, WebEndpoint) -> [String]?)? = nil
     
     // authentication
-    public func onAuthenticatedRequest(callback: @escaping ((_ authenticationToken: String?) -> Bool)) {
-        authenticationVerification = callback
+    public func onGetUserRoles(callback: @escaping ((_ authenticationToken: String?, _ endpoint: WebEndpoint) -> [String]?)) {
+        getUserRoles = callback
     }
     
     // request events
-    private var onAccept: ((_ context: WebRequestContext, _ endpoint: WebEndpoint) -> Void)? = nil
+    private var onAccept: ((_ endpoint: WebEndpoint) -> Void)? = nil
     
-    public func onAcceptedRequest(callback: @escaping ((_ context: WebRequestContext, _ endpoint: WebEndpoint) -> Void)) {
+    public func onAcceptedRequest(callback: @escaping ((_ endpoint: WebEndpoint) -> Void)) {
         self.onAccept = callback
     }
     
@@ -57,214 +265,17 @@ public class SWWebAppServer {
     private var port: UInt16
     private var svr: HttpServer
     
-    fileprivate var menuStructure: [MenuEntry] = []
-    
-    internal var menus: [MenuEntry] {
-        get {
-            return menuStructure.map({ MenuEntry().copyFrom($0) })
-        }
-    }
     
     // action blocks
-
     public init(port: Int, bindAddressv4: String? = nil) {
         
         self.port = UInt16(port)
         self.svr = HttpServer()
-
-        for r in WebServer.registrations {
-            
-            if let r = r as? WebHTMLEndpoint {
-                var path = "/"
-                if let module = r.controller {
-                    path += module
-                    if let controller = r.method {
-                        path += "/"
-                        path += controller
-                    }
-                } else if let controller = r.method {
-                    path += controller
-                }
-                
-                let requestHandler: ((HttpRequest) -> HttpResponse) = { request in
-                    
-                    let c = WebRequestContext(navigation: WebNavigationPosition(request), data: WebRequestData(request), service: self, request: request, endpoint: r)
-                    onAccept(c)
-                    
-                    // check authentication status
-                    if !r.accessible.contains(.unauthenticated) {
-                        // check for valid authentication
-                        if !(c.security.authenticated) {
-                            return .redirect("/", nil)
-                        }
-                    }
-                    
-                    var responseObject: WebResponseObject? = nil
-                    
-                    if let fragment = c.navigation.fragment {
-                        responseObject = r.fragment(c, activity: c.navigation.action ?? .Content, fragment: fragment)
-                    } else {
-                        // non-fragment, so pay attention to the action
-                        switch c.navigation.action {
-                        case .Content:
-                            if (c.security.grants).containsAnyOf((r.grants[.Content] ?? [])) {
-                                // now check if it is a request for a fragment
-                                responseObject = r.content(c)
-                            }
-                        case .View:
-                            if (c.security.grants).containsAnyOf((r.grants[.View] ?? [])) {
-                                responseObject = r.view(c)
-                            } else {
-                                responseObject = c.redirect(c.navigation.target(.Content))
-                            }
-                        case .Save:
-                            if (c.security.grants).containsAnyOf((r.grants[.Save] ?? [])) {
-                                responseObject = r.save(c, data: c.data)
-                            } else {
-                                responseObject = c.redirect(c.navigation.target(.Content))
-                            }
-                        case .Modify:
-                            if (c.security.grants).containsAnyOf((r.grants[.Modify] ?? [])) {
-                                responseObject = r.modify(c)
-                            } else {
-                                responseObject = c.redirect(c.navigation.target(.Content))
-                            }
-                        case .New:
-                            if (c.security.grants).containsAnyOf((r.grants[.New] ?? [])) {
-                                responseObject = r.new(c)
-                            } else {
-                                responseObject = c.redirect(c.navigation.target(.Content))
-                            }
-                        case .Delete:
-                            if (c.security.grants).containsAnyOf((r.grants[.Delete] ?? [])) {
-                                responseObject = r.delete(c)
-                            } else {
-                                responseObject = c.redirect(c.navigation.target(.Content))
-                            }
-                        case .Raw:
-                            if (c.security.grants).containsAnyOf((r.grants[.Raw] ?? [])) {
-                                responseObject = r.raw(c)
-                            }
-                        default:
-                            break
-                        }
-                    }
-                    
-                    if let response = responseObject {
-                        return response.httpResponse()
-                    } else {
-                        return .internalServerError
-                    }
-
-                }
-                
-                svr.get[path] = requestHandler
-                svr.post[path] = requestHandler
-                svr.delete[path] = requestHandler
-                svr.patch[path] = requestHandler
-                svr.options[path] = requestHandler
-                svr.head[path] = requestHandler
-                
-                // now register the menu endpoint
-                if let menuObject = r as? MenuIndexable {
-                    if let entry = menuObject.menuEntry {
-                        if let header = menuStructure.first(where: { $0.primary == entry.primary }), let secondary = entry.secondary {
-                            
-                            // we have a header record already, so lets create a subordinate
-                            let item = MenuEntry()
-                            item.primary = entry.primary
-                            item.secondary = entry.secondary
-                            item.title = secondary
-                            item.grants = r.grants[.Content] ?? []
-                            item.visibility = r.accessible
-                            item.cont = r.controller
-                            item.meth = r.method
-                            item.icon = menuObject.icon
-                            
-                            for g in item.grants {
-                                if !header.grants.contains(g) {
-                                    header.grants.append(g)
-                                }
-                            }
-                            header.subordinates.append(item)
-                            
-                        } else {
-                            
-                            let header = MenuEntry()
-                            header.title = entry.primary
-                            header.icon = menuObject.icon
-                            header.primary = entry.primary
-                            header.visibility = r.accessible
-                            header.grants = r.grants[.Content] ?? []
-                            header.cont = r.controller
-                            header.meth = r.method
-                            
-                            if let secondary = entry.secondary {
-                                let item = MenuEntry()
-                                item.secondary = secondary
-                                item.icon = menuObject.icon
-                                item.primary = entry.primary
-                                item.title = secondary
-                                item.grants = r.grants[.Content] ?? []
-                                item.visibility = r.accessible
-                                item.cont = r.controller
-                                item.meth = r.method
-                                header.subordinates.append(item)
-                            }
-                            menuStructure.append(header)
-                        }
-                    }
-                }
-                
-            }  else if let r = r as? WebAPIEndpoint {
-                
-                var path = "/"
-                if let module = r.controller {
-                    path += module
-                    if let controller = r.method {
-                        path += "/"
-                        path += controller
-                    }
-                } else if let controller = r.method {
-                    path += controller
-                }
-                
-                let requestHandler: ((HttpRequest) -> HttpResponse) = { request in
-                    let c = WebRequestContext(navigation: WebNavigationPosition(request), data: WebRequestData(request), service: self, request: request, endpoint: nil)
-                    onAccept(c)
-                 
-                    // check authentication status
-                    if !r.accessible.contains(.unauthenticated) {
-                        // check for valid authentication
-                        if !(c.security.authenticated) {
-                            return .forbidden(.none)
-                        }
-                    }
-                    
-                    if let response = r.call(c, data: c.data)?.httpResponse() {
-                        return response
-                    } else {
-                        return .internalServerError
-                    }
-                }
-                
-                svr.get[path] = requestHandler
-                svr.post[path] = requestHandler
-                svr.delete[path] = requestHandler
-                svr.patch[path] = requestHandler
-                svr.options[path] = requestHandler
-                svr.head[path] = requestHandler
-  
-            }
-            
-        }
         #if os(OSX)
         self.svr.listenAddressIPv4 = bindAddressv4 ?? "127.0.0.1"
         #endif
         try? self.svr.start(self.port, forceIPv4: true, priority: .userInteractive)
         
-        // finally add it into the pool
-        WebServer.servers.append(self)
     }
     
 }
@@ -272,32 +283,45 @@ public class SWWebAppServer {
 public class MenuEntry {
     
     public var title: String = ""
-    public var visibility: [AuthenticationStatus] = []
-    public var grants: [String] = []
-    public var subordinates: [MenuEntry] = []
-    public var primary: String?
-    public var secondary: String?
+    public var children: [MenuEntry] = []
     public var selected: Bool = false
-    public var cont: String?
-    public var meth: String?
+    public var path: String?
     public var header: Bool = false
-    public var icon: FontAwesomeIcon?
     
-    public func copyFrom(_ menu: MenuEntry) -> MenuEntry {
-        self.title = menu.title
-        self.visibility = menu.visibility.map({ return $0 })
-        self.grants = menu.grants.map({ return $0 })
-        for s in menu.subordinates {
-            self.subordinates.append(MenuEntry().copyFrom(s))
-        }
-        self.primary = menu.primary
-        self.secondary = menu.secondary
-        self.selected = menu.selected
-        self.cont = menu.cont
-        self.meth = menu.meth
-        self.icon = menu.icon
-        return self
-    }
 }
 
-public typealias OnWebRequest = ( (WebRequestContext) -> Void )
+internal class Mutex {
+    
+    private var thread: Thread? = nil;
+    private var lock: DispatchQueue
+    
+    public init() {
+        lock = DispatchQueue(label: UUID().uuidString.lowercased())
+    }
+    
+    public func execute(_ closure:() -> Void) {
+        if thread != Thread.current {
+            lock.sync {
+                thread = Thread.current
+                closure()
+                thread = nil
+            }
+        } else {
+            closure()
+        }
+    }
+    
+    public func execute<T>(_ closure:() -> T) -> T {
+        if thread != Thread.current {
+            return lock.sync {
+                thread = Thread.current
+                let result = closure()
+                thread = nil
+                return result
+            }
+        } else {
+            return closure()
+        }
+    }
+    
+}
