@@ -19,15 +19,21 @@ public extension BaseWebEndpoint {
     /// - Returns: Configured WebLinkElement.
     @discardableResult
     func Link(_ href: String, title: String, target: String? = nil) -> WebCoreElement {
-        let link: WebCoreElement = create { el in
-            el.elementName = "a"
-            el.addAttribute(.class(el.builderId))
-            el.addAttribute(.href(href))
-            if let t = target {
-                el.addAttribute(.pair("target", t))
+        var result: WebCoreElement?
+        
+        WrapInLayoutContainer {
+            result = create { el in
+                el.elementName = "a"
+                el.addAttribute(.class(el.builderId))
+                el.addAttribute(.href(href))
+                if let t = target {
+                    el.addAttribute(.pair("target", t))
+                }
+                el.addAttribute(.innerHTML(title))
             }
-            el.addAttribute(.innerHTML(title))
         }
-        return link
+        
+        return result!
+        
     }
 }

@@ -110,11 +110,16 @@ internal extension BaseWebEndpoint {
         }
 
         // 4b. there is something—emit children in order
-        result += ">\n"
+        result += ">"
+        if element.subElements.isEmpty == false {
+            result += "\n"
+        }
         let childIndent = indent + tab
 
         // 4b.i innerHTML first
-        if let html = innerText {
+        if let html = innerText, element.subElements.isEmpty {
+            result += "\(html)"
+        } else if let html = innerText {
             result += "\(childIndent)\(html)\n"
         }
 
@@ -124,7 +129,11 @@ internal extension BaseWebEndpoint {
         }
 
         // 4c. close tag
-        result += "\(indent)</\(element.elementName)>\n"
+        if element.subElements.isEmpty == false {
+            result += "\(indent)</\(element.elementName)>\n"
+        } else {
+            result += "</\(element.elementName)>\n"
+        }
         
         // 4b.iii then any scripts
         for js in scripts {

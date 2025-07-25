@@ -6,9 +6,9 @@
 //
 
 import Foundation
-import SWWebAppServer
+import WSwiftUI
 
-let server = SWWebAppServer(port: 4242, bindAddressv4: "0.0.0.0")
+let server = WSwiftServer(port: 4242, bindAddressv4: "0.0.0.0")
 server.register(HomePage())
 server.register(PurposePage())
 server.register(ControlsPage())

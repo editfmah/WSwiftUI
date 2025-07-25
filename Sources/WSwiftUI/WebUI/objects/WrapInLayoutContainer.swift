@@ -11,8 +11,8 @@ public extension BaseWebEndpoint {
     func WrapInLayoutContainer(_ closure: WebComposerClosure) -> Any {
         if parent?.layout == .horizontal {
             return VStack {
-                var object = create { element in
-                    element.class("column")
+                let object = create { element in
+                    element.class("col")
                 }
                 stack.append(object)
                 closure()
@@ -20,7 +20,7 @@ public extension BaseWebEndpoint {
             }
         } else if parent?.layout == .vertical {
             return VStack {
-                var object = create { element in
+                let object = create { element in
                     element.class("row")
                 }
                 stack.append(object)
@@ -28,7 +28,7 @@ public extension BaseWebEndpoint {
                 stack.removeAll(where: { $0.builderId == object.builderId })
             }
         } else {
-            var object = create { element in
+            let object = create { element in
                 element.class("row")
             }
             stack.append(object)

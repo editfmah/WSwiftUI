@@ -11,6 +11,7 @@ public extension BaseWebEndpoint {
     func HStack(_ closure: WebComposerClosure) -> WebCoreElement {
         let object = create { element in
             element.class("row")
+            element.layout = .horizontal
         }
         stack.append(object)
         closure()

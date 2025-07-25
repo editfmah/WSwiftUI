@@ -10,7 +10,8 @@ public extension BaseWebEndpoint {
     @discardableResult
     func VStack(_ closure: WebComposerClosure) -> WebCoreElement {
         var object = create { element in
-            element.class("column")
+            element.class("col")
+            element.layout = .vertical
         }
         stack.append(object)
         closure()

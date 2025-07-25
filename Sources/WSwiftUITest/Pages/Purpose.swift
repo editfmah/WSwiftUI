@@ -1,23 +1,23 @@
 //
-//  Controls.swift
+//  Purpose.swift
 //  SWWebAppServer
 //
 //  Created by Adrian on 12/07/2025.
 //
 
 import Foundation
-import SWWebAppServer
+import WSwiftUI
 
-class ControlsPage : BaseWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
+class PurposePage : BaseWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
     
-    var menuPrimary: String = "Controls"
+    var menuPrimary: String = "Purpose"
     
     var menuSecondary: String?
     
     
     override func content() -> Any? {
         
-        template {
+        Template {
             
             Jumbotron {
                 JumbotronTitle("Welcome to the Home Page")
@@ -28,7 +28,7 @@ class ControlsPage : BaseWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndex
         
     }
     
-    var controller: String? = "controls"
+    var controller: String? = "purpose"
     
     var method: String? = nil
     

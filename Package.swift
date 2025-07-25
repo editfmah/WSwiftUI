@@ -4,22 +4,22 @@
 import PackageDescription
 
 let package = Package(
-    name: "SWWebAppServer",
+    name: "WSwiftUI",
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "SWWebAppServer",
-            targets: ["SWWebAppServer"]),
-        .executable(name: "SWWebAppServerTest", targets: ["SWWebAppServerTest"])
+            name: "WSwiftUI",
+            targets: ["WSwiftUI"]),
+        .executable(name: "WSwiftUITest", targets: ["WSwiftUITest"])
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
-        .target(name: "SWWebAppServer"),
-        .target(name: "SWWebAppServerTest", dependencies: ["SWWebAppServer"]),
+        .target(name: "WSwiftUI"),
+        .target(name: "WSwiftUITest", dependencies: ["WSwiftUI"]),
         .testTarget(
-            name: "SWWebAppServerTests",
-            dependencies: ["SWWebAppServer"]
+            name: "WSwiftUITests",
+            dependencies: ["WSwiftUI"]
         ),
     ]
 )

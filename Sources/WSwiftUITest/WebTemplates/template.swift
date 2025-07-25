@@ -6,15 +6,19 @@
 //
 
 import Foundation
-import SWWebAppServer
+import WSwiftUI
 
 extension BaseWebEndpoint {
-    func template(_ content: WebComposerClosure) -> WebCoreElement {
+    
+    func Template(_ content: WebComposerClosure) -> WebCoreElement {
         
         webpage {
             
             head(.script(src: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"))
             head(.styleLink(href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"))
+            head(.styleLink(href: "https://unpkg.com/prismjs@1.29.0/themes/prism.css"))
+            head(.script(src: "https://unpkg.com/prismjs@1.29.0/prism.js"))
+            head(.script(src: "https://unpkg.com/prismjs@v1.29.0/plugins/autoloader/prism-autoloader.min.js"))
             head(.metaViewport(content: "width=device-width, initial-scale=1"))
             
             // Dynamic navigation bar using menuEntries
@@ -49,22 +53,17 @@ extension BaseWebEndpoint {
             content()
             
             // Footer
-            Footer() {
-                VStack {
-                    Text("© 2025 WSwiftUI Demo")
-                        .class("text-center text-muted")
-                    HStack() {
-                        Link("/privacy", title: "Privacy Policy")
-                        Spacer()
-                        Link("/terms", title: "Terms of Service")
-                    }.textalign(.center)
-                    .class("mt-2")
-                }
-                .padding(10)
+            Footer {
+                HStack {
+                    Text("(C) 2025 WSwiftUI Demo").foreground(.white)
+                    Link("/privacy", title: "Privacy Policy").foreground(.white)
+                    Link("/terms", title: "Terms of Service").foreground(.white)
+                }.height(20).textalign(.center)
             }
             .default()
             .sticky()
             .collapseOnScroll(threshold: 100, collapsedClass: "py-1")
+            .background(.darkGrey).opacity(0.7)
             
         }
     }

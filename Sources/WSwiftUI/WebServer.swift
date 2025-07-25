@@ -26,7 +26,7 @@ private extension HttpRequest {
     }
 }
 
-public class SWWebAppServer {
+public class WSwiftServer {
     
     // endpoint registration
     private var mutex: Mutex = Mutex()
