@@ -119,11 +119,24 @@ extension String {
                     return [CChar](UnsafeBufferPointer(start: ptrc, count: 256))
                   }))
                 #else
-                    var buffer = ptr.withMemoryRebound(to: CChar.self, capacity: Int(ent.pointee.d_reclen), { (ptrc) -> [CChar] in
-                      return [CChar](UnsafeBufferPointer(start: ptrc, count: Int(ent.pointee.d_namlen)))
-                    })
-                    buffer.append(0)
-                    return String(validatingUTF8: buffer)
+                let utf8Bytes = ptr.withMemoryRebound(
+                    to: CChar.self,
+                    capacity: Int(ent.pointee.d_reclen)
+                ) { ptrc in
+                    UnsafeBufferPointer(start: ptrc, count: Int(ent.pointee.d_namlen))
+                        .map { UInt8(bitPattern: $0) }
+                }
+
+                if #available(macOS 15.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *) {
+                    // New API on modern OSes:
+                    return String(validating: utf8Bytes, as: UTF8.self)
+                } else {
+                    // Fallback for older OSes—rebuild a CChar buffer with NUL and use the old initializer:
+                    var cBuffer = utf8Bytes.map { CChar(bitPattern: $0) }
+                    cBuffer.append(0)
+                    return String(validatingUTF8: cBuffer)
+                }
+
                 #endif
             }
             if let fileName = fileName {

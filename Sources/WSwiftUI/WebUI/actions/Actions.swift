@@ -578,12 +578,9 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
             }
             """
                 
-            case .handleResponse(let scriptContent):
+            case .handleResponse(_):
                 // This case is handled within the .post case to inject the response data
                 break
-                
-                // Existing cases...
-                
             case .navigate(let url):
                 script += "window.location.href = '\(url)';\n"
             case .load(ref: let ref, url: let url):
@@ -594,47 +591,83 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 }
             case .script(let scrpt):
                 script += scrpt + "\n"
-            case .post(url: let url, values: let values, onSuccessful: let onSuccessful, onFailed: let onFailed, onTimeout: let onTimeout, resultInto: let resultInto):
-                let id = "\(UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "").prefix(4))"
+            case .post(
+                url:             let url,
+                values:          let values,
+                onSuccessful:    let onSuccessful,
+                onFailed:        let onFailed,
+                onTimeout:       let onTimeout,
+                resultInto:      let resultInto
+            ):
+                let id = "\(UUID().uuidString.lowercased().replacingOccurrences(of: "-", with:"").prefix(4))"
+                
+                // --- build the POST payload ---
                 script += "var postData\(id) = {};\n"
                 for value in values ?? [] {
                     if let name = value.internalName {
                         script += "postData\(id)['\(name)'] = \(value.builderId);\n"
                     }
                 }
+
+                // --- open and configure XHR ---
                 script += "var xhr\(id) = new XMLHttpRequest();\n"
                 script += "xhr\(id).open('POST', '\(url ?? "")', true);\n"
                 script += "xhr\(id).setRequestHeader('Content-Type', 'application/json');\n"
                 script += "xhr\(id).overrideMimeType('text/html');\n"
+                // this flag makes the browser accept and store Set-Cookie headers
+                script += "xhr\(id).withCredentials = true;\n\n"
+
+                // --- state‑change handler (200‑range, failures, cookies & redirect) ---
                 script += "xhr\(id).onreadystatechange = function() {\n"
-                script += "if (xhr\(id).readyState == 4 && (xhr\(id).status == 200 || xhr\(id).status == 201 || xhr\(id).status == 202)) {\n"
+                script += "  if (xhr\(id).readyState !== 4) return;\n"
+                script += "  // 1) grab any cookies the server just set (HttpOnly ones won't appear here)\n"
+                script += "  var cookies = document.cookie;\n\n"
+                script += "  // 2) detect if the final URL is different (i.e. a redirect happened)\n"
+                script += "  var finalURL = xhr\(id).responseURL;\n"
+                script += "  if (finalURL && finalURL !== '\(url ?? "")') {\n"
+                script += "    window.location.href = finalURL;\n"
+                script += "    return;\n"
+                script += "  }\n\n"
+                script += "  // 3) success vs. failure based on status code\n"
+                script += "  if (xhr\(id).status >= 200 && xhr\(id).status < 300) {\n"
                 if let resultInto = resultInto {
-                    script += "\(resultInto.builderId) = xhr\(id).responseText;\n"
+                    script += "    \(resultInto.builderId) = xhr\(id).responseText;\n"
                 }
                 if let onSuccessful = onSuccessful {
                     for action in onSuccessful {
                         if case .handleResponse(let scriptContent) = action {
                             script += """
-                        {
-                            var body = xhr\(id).responseText;
-                            var status = xhr\(id).status;
-                            var headers = xhr\(id).getAllResponseHeaders();
-                            \(scriptContent)
-                        }
-                        """
+                                {
+                                  var body    = xhr\(id).responseText;
+                                  var status  = xhr\(id).status;
+                                  var headers = xhr\(id).getAllResponseHeaders();
+                                  var cookie  = cookies;
+                                  \(scriptContent)
+                                }
+                                """
                         } else {
                             script += CompileActions([action], builderId: builderId)
                         }
                     }
                 }
-                script += "} else {\n"
+                script += "  } else {\n"
                 if let onFailed = onFailed {
                     script += CompileActions(onFailed, builderId: builderId)
                 }
-                script += "}\n"
-                script += "};\n"
+                script += "  }\n"
+                script += "};\n\n"
+
+                // --- timeout handler (if any) ---
+                if let onTimeout = onTimeout {
+                    // e.g. you could also do: xhr\(id).timeout = 10000; // 10s
+                    script += "xhr\(id).ontimeout = function() {\n"
+                    script += CompileActions(onTimeout, builderId: builderId)
+                    script += "};\n\n"
+                }
+
+                // --- send it off ---
                 script += "xhr\(id).send(JSON.stringify(postData\(id)));\n"
-                
+
             case .addClass(let className):
                 script += "\(builderId).classList.add('\(className)');\n"
             case .removeClass(let className):
@@ -785,7 +818,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 } else if let boolValue = to as? Bool {
                     script += "\(variable.builderId) = \(boolValue ? "true" : "false");\n"
                 } else {
-                    script += "\(variable.builderId) = '\(to)';\n"
+                    script += "\(variable.builderId) = '\(to ?? "")';\n"
                 }
             case .setInput(let inputName, to: let to):
                 if let stringValue = to as? String {
@@ -797,7 +830,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 } else if let boolValue = to as? Bool {
                     script += "document.getElementsByName('\(inputName)')[0].value = \(boolValue ? "true" : "false");\n"
                 } else {
-                    script += "document.getElementsByName('\(inputName)')[0].value = '\(to)';\n"
+                    script += "document.getElementsByName('\(inputName)')[0].value = '\(to ?? "")';\n"
                 }
             case .setVariableName(let variableName, to: let to):
                 if let stringValue = to as? String {
@@ -809,7 +842,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 } else if let boolValue = to as? Bool {
                     script += "set\(variableName.md5)(\(boolValue ? "true" : "false"));\n"
                 } else {
-                    script += "set\(variableName.md5)('\(to)');\n"
+                    script += "set\(variableName.md5)('\(to ?? "")');\n"
                 }
         }
     }

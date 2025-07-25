@@ -13,7 +13,8 @@ public protocol HttpServerIODelegate: AnyObject {
     func socketConnectionReceived(_ socket: Socket)
 }
 
-public class HttpServerIO {
+
+public class HttpServerIO : @unchecked Sendable {
 
     public weak var delegate: HttpServerIODelegate?
 

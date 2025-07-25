@@ -7,7 +7,6 @@
 
 public extension BaseWebEndpoint {
     
-    @discardableResult
     func head(_ element: WebCoreHeadElement) {
         headAttributes.append(element)
     }

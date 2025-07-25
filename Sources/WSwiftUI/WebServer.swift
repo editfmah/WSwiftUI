@@ -95,7 +95,7 @@ public class WSwiftServer {
                 
                 for (e) in endpoints {
                     
-                    if let menuEndpoint = e as? MenuIndexable {
+                    if e is MenuIndexable {
                         
                         // we now need to check if we have permissions to see it
                         if e.authenticationRequired {
@@ -129,7 +129,7 @@ public class WSwiftServer {
                     
                     // it has to be content and it has to be indexable
                     guard let menuEndpoint = e as? MenuIndexable else { continue }
-                    guard let contentEndpoint = e as? WebContentEndpoint else { continue }
+                    guard e is WebContentEndpoint else { continue }
                     
                     if primaries.contains(menuEndpoint.menuPrimary) == false {
                         
@@ -151,7 +151,7 @@ public class WSwiftServer {
                 for e in available {
                     
                     guard let menuEndpoint = e as? MenuIndexable else { continue }
-                    guard let contentEndpoint = e as? WebContentEndpoint else { continue }
+                    guard e is WebContentEndpoint else { continue }
                     
                     // find the primary entry
                     if let primaryEntry = menus.first(where: { $0.title == menuEndpoint.menuPrimary }) {
@@ -174,7 +174,7 @@ public class WSwiftServer {
                 }
             }
             
-            if var endpoint = endpoint as? BaseWebEndpoint {
+            if let endpoint = endpoint as? BaseWebEndpoint {
                 endpoint.ephemeralData["menu_data"] = menus
             }
             
@@ -209,14 +209,12 @@ public class WSwiftServer {
                 if let response = response as? HttpResponse {
                     // check to see if there was a new auth token set
                     return response
-                } else if let response = response as? WebCoreElement {
-                    
+                } else if response is WebCoreElement {
                     // build the html response from the response object
-                    if let endpoint = endpoint as? BaseWebEndpoint {
+                    if endpoint is WebContentEndpoint {
                         let pageContent = endpoint.renderWebPage()
                         return HttpResponse.ok(.html(pageContent), endpoint.newAuthenticationIdentifier ?? endpoint.newAuthenticationIdentifier)
                     }
-                    
                 } else if let response = response as? Codable {
                     return HttpResponse.ok(.json(response), endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier)
                 }
@@ -241,9 +239,6 @@ public class WSwiftServer {
     }
     
     public func unregister(_ endpoint: WebEndpoint) {
-        
-        // calculate the path from the controller and method
-        let path = endpoint.path
         
     }
     

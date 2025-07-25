@@ -23,7 +23,7 @@ public enum SocketError: Error {
 }
 
 // swiftlint: disable identifier_name
-open class Socket: Hashable, Equatable {
+open class Socket: Hashable, Equatable, @unchecked Sendable {
         
     let socketFileDescriptor: Int32
     private var shutdown = false
@@ -213,7 +213,11 @@ open class Socket: Hashable, Equatable {
         if getnameinfo(&addr, len, &hostBuffer, socklen_t(hostBuffer.count), nil, 0, NI_NUMERICHOST) != 0 {
             throw SocketError.getNameInfoFailed(Errno.description())
         }
-        return String(cString: hostBuffer)
+        let bytes: [UInt8] = hostBuffer
+            .prefix(while: { $0 != 0 })                       // drop everything after the first null
+            .map { UInt8(bitPattern: $0) }                    // convert CChar → UInt8
+
+        return String(decoding: bytes, as: UTF8.self)
     }
     
     public class func setNoSigPipe(_ socket: Int32) {

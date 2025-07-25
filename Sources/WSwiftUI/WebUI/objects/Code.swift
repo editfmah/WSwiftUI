@@ -58,9 +58,7 @@ public extension BaseWebEndpoint {
     @discardableResult
     func Code(language: CodeLanguage, _ text: String) -> WebCoreElement {
         var result: WebCoreElement?
-        
-        let lines = text.escapedForCode().components(separatedBy: "\n")
-        
+
         WrapInLayoutContainer {
             result = create { element in
                 element.elementName  = "pre"

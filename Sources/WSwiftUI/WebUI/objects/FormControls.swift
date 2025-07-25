@@ -170,7 +170,6 @@ public extension BaseWebEndpoint {
         let id = "input_\(inp.builderId)"
         inp.id(id)
         if let varName = variable.internalName { inp.name(varName) }
-        let initial = variable.asString().replacingOccurrences(of: "\"", with: "\\\"")
         inp.value(variable.asString())
         if let p = placeholder { inp.placeholder(p) }
         if disabled { inp.disabled() }

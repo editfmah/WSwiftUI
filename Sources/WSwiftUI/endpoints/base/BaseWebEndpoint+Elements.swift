@@ -35,7 +35,7 @@ public extension BaseWebEndpoint {
         
         // work out if the parent 
         
-        var element = WebCoreElement()
+        let element = WebCoreElement()
         
         populateCreatedObject(element)
         `init`(element)

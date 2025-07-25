@@ -8,7 +8,7 @@
 
 import Foundation
 
-public class HttpServer: HttpServerIO {
+public class HttpServer: HttpServerIO, @unchecked Sendable {
     
     public static let VERSION = "0.0.1"
     

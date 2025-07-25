@@ -187,7 +187,7 @@ public extension BaseWebEndpoint {
     func PickerItem(title: String,
                     href: String? = nil,
                     disabled: Bool = false) -> WebPickerItemElement {
-        guard let menu = stack.last as? WebPickerMenuElement else {
+        guard stack.last is WebPickerMenuElement else {
             fatalError("PickerItem must be used inside Picker { ... } block")
         }
         let item = createPickerItem { el in
