@@ -307,7 +307,7 @@ public protocol WebEndpoint {
     var request: HttpRequest { get set }
     var controller: String? { get set }
     var method: String? { get set }
-    var authenticationRequired: Bool { get set }
+    var authenticationRequired: [WebAuthenticationStatus] { get set }
     func create() -> Self
     static func path(action: WebRequestActivity?, resource: UUID?, subResource: UUID?, version: UUID?, filter: [String: String]?, fragment: String?, returnUrl: String?) -> String
 
@@ -486,7 +486,7 @@ class Test : BaseWebEndpoint, WebEndpoint, WebContentEndpoint {
     
     var method: String? = nil
     
-    var authenticationRequired: Bool = false
+    var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     
     override func content() -> Any? {
         return HttpResponse.ok(.text("hello, test"), nil)

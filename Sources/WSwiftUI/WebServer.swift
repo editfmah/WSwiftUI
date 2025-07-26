@@ -49,7 +49,7 @@ public class WSwiftServer {
             var endpoint = newEndpoint.create()
             var grants: [String] = []
             
-            if endpoint.authenticationRequired {
+            if endpoint.authenticationRequired.contains(.authenticated) {
                 if let token = request.authenticationToken, let authenticator = self.getUserRoles, let currentGrants = authenticator(token, endpoint) {
                     grants = currentGrants
                 } else {
@@ -98,7 +98,7 @@ public class WSwiftServer {
                     if e is MenuIndexable {
                         
                         // we now need to check if we have permissions to see it
-                        if e.authenticationRequired {
+                        if e.authenticationRequired.contains(.unauthenticated) == false {
                             
                             // cast the object into a cotent or api
                             if let content = e as? WebContentEndpoint {
