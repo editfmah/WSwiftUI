@@ -423,7 +423,7 @@ open class CoreWebEndpoint {
     
     // session data
     public var ephemeralData: [String : Any?] = [:]
-    internal var authenticationIdentifier: String? = nil
+    public var authenticationIdentifier: String? = nil
     internal var newAuthenticationIdentifier: String? = nil
     internal var sessionExpiry: Date? = nil
     internal var headAttributes: [WebCoreHeadElement] = []
