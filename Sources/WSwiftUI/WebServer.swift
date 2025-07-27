@@ -55,7 +55,7 @@ public class WSwiftServer {
                 if let token = request.authenticationToken, let authenticator = self.getUserRoles, let currentGrants = authenticator(token, endpoint) {
                     grants = currentGrants
                 } else {
-                    return .forbidden(.text("Authentication failed. Please log in again."))
+                    return .redirect("/", nil)
                 }
             }
             
