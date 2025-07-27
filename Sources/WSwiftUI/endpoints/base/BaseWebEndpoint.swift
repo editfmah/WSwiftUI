@@ -445,34 +445,38 @@ open class BaseWebEndpoint {
     internal var webRootElement: WebCoreElement? = nil
     internal var stack: [WebCoreElement] = []
     
+    // default content methods
+    open func content() -> Any? {
+        return HttpResponse.notFound
+    }
+    
+    open func view() -> Any? {
+        return HttpResponse.notFound
+    }
+    
+    open func delete() -> Any? {
+        return HttpResponse.notFound
+    }
+    
+    open func modify() -> Any? {
+        return HttpResponse.notFound
+    }
+    
+    open func save() -> Any? {
+        return HttpResponse.notFound
+    }
+    
+    open func new() -> Any? {
+        return HttpResponse.notFound
+    }
+    
+    open func raw() -> Any? {
+        return HttpResponse.notFound
+    }
+    
 }
 
 class Test : BaseWebEndpoint, WebEndpoint, WebContentEndpoint {
-    
-    func view() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    func delete() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    func modify() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    func save() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    func new() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    func raw() -> Any? {
-        return HttpResponse.notFound
-    }
-    
 
     public required init() {
         super.init()
@@ -484,7 +488,7 @@ class Test : BaseWebEndpoint, WebEndpoint, WebContentEndpoint {
     
     var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     
-    func content() -> Any? {
+    override func content() -> Any? {
         return HttpResponse.ok(.text("hello, test"), nil)
     }
       
