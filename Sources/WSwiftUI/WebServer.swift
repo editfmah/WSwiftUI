@@ -54,6 +54,9 @@ public class WSwiftServer {
             if endpoint.authenticationRequired.contains(.authenticated) {
                 if let token = request.authenticationToken, let authenticator = self.getUserRoles, let currentGrants = authenticator(token, endpoint) {
                     grants = currentGrants
+                    if grants.isEmpty {
+                        return .redirect("/", nil)
+                    }
                 } else {
                     return .redirect("/", nil)
                 }
