@@ -184,7 +184,7 @@ public class WSwiftServer {
             }
             
             // now execute and return the correct method
-            if let endpoint = endpoint as? BaseWebEndpoint {
+            if let endpoint = endpoint as? WebContentEndpoint {
                 
                 var response: Any? = nil
                 
@@ -211,12 +211,14 @@ public class WSwiftServer {
                     return response
                 } else if response is WebCoreElement {
                     // build the html response from the response object
-                    if endpoint is WebContentEndpoint {
+                    if let endpoint = endpoint as? BaseWebEndpoint {
                         let pageContent = endpoint.renderWebPage()
                         return HttpResponse.ok(.html(pageContent), endpoint.newAuthenticationIdentifier ?? endpoint.newAuthenticationIdentifier)
                     }
                 } else if let response = response as? Codable {
-                    return HttpResponse.ok(.json(response), endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier)
+                    if let endpoint = endpoint as? BaseWebEndpoint {
+                        return HttpResponse.ok(.json(response), endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier)
+                    }
                 }
                 
                 return .notFound
