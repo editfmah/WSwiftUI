@@ -31,7 +31,7 @@ public class WebData {
     }
 
     public func consume(_ body: Data) {
-        let contentType = combined["Content-Type"] ?? ""
+        let contentType = combined["content-type"] ?? ""
         
         if contentType.contains("application/json") {
             consumeJSON(body)
