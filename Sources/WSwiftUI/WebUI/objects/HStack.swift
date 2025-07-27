@@ -5,7 +5,7 @@
 //  Created by Adrian on 01/07/2025.
 //
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     @discardableResult
     func HStack(_ closure: WebComposerClosure) -> WebCoreElement {

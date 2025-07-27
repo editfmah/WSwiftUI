@@ -80,7 +80,7 @@ public extension WebModalDialogElement {
 }
 
 // 5) DSL factories on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     // Internal create helpers
     fileprivate func createModal(_ `init`: (WebModalElement) -> Void) -> WebModalElement {
         let el = WebModalElement()

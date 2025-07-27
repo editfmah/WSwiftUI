@@ -44,7 +44,7 @@ public extension WebBadgeElement {
 }
 
 // 4) DSL factory on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Renders a `<span class="badge bg-<variant> [rounded-pill]">` with provided text
     @discardableResult
     func Badge(_ title: String,

@@ -78,7 +78,7 @@ public extension WebButtonElement {
 }
 
 // 4) Factory on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Internal helper to create a button
     fileprivate func createButton(_ `init`: (_ element: WebButtonElement) -> Void) -> WebButtonElement {
         let element = WebButtonElement()

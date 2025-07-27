@@ -20,7 +20,7 @@ public struct MenuSectionModel {
   public let items: [MenuItemModel]
 }
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
   
   /// Turn the raw `ephemeralData["menu"]` into a strongly-typed model.
   ///

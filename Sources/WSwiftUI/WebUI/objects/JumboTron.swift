@@ -13,7 +13,7 @@ public class WebJumbotronImageElement: WebCoreElement {}
 public class WebJumbotronTitleElement: WebCoreElement {}
 public class WebJumbotronSubtitleElement: WebCoreElement {}
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
   /// Creates a full-width jumbotron banner.
   ///
   /// - Parameters:

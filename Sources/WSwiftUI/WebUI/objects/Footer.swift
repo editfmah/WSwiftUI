@@ -53,7 +53,7 @@ window.addEventListener('scroll', function() {
 }
 
 // 3) DSL factory on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Creates a <footer> element and nests any content inside
     @discardableResult
     func Footer(_ content: WebComposerClosure) -> WebFooterElement {

@@ -40,7 +40,7 @@ public extension WebAccordionElement {
 // 3) Builder types (DSL via AccordionItem)
 public enum AccordionElement {} // no longer used
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Internal create overload for accordions
     fileprivate func create(_ `init`: (_ element: WebAccordionElement) -> Void) -> WebAccordionElement {
         let element = WebAccordionElement()

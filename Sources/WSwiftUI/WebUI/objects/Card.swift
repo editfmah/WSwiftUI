@@ -63,7 +63,7 @@ public extension WebCardImageElement {
 }
 
 // 4) DSL factories on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     // Internal create overload for Card
     fileprivate func createCard(_ `init`: (_ element: WebCardElement) -> Void) -> WebCardElement {
         let element = WebCardElement()

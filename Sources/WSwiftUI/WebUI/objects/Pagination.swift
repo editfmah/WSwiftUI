@@ -65,7 +65,7 @@ public extension WebPaginationItemElement {
 }
 
 // 5) DSL factories on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Creates a <ul class="pagination [pagination-sm|lg] [justify-content-*]"> container
     @discardableResult
     func Pagination(size: PaginationSize? = nil,

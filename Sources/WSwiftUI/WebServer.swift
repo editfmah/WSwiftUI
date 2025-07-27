@@ -174,7 +174,7 @@ public class WSwiftServer {
                 }
             }
             
-            if let endpoint = endpoint as? BaseWebEndpoint {
+            if let endpoint = endpoint as? CoreWebEndpoint {
                 endpoint.ephemeralData["menu_data"] = menus
             }
             
@@ -184,7 +184,7 @@ public class WSwiftServer {
             }
             
             // now execute and return the correct method
-            if let endpoint = endpoint as? BaseWebEndpoint {
+            if let endpoint = endpoint as? CoreWebEndpoint {
                 
                 var response: Any? = nil
                 

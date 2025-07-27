@@ -63,7 +63,7 @@ public extension WebFormElement {
 }
 
 // 4) DSL factory on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Creates a <form> element with optional attributes
     @discardableResult
     func Form(action: String? = nil,

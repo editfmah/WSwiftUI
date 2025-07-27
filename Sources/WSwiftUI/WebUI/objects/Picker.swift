@@ -109,7 +109,7 @@ public extension WebPickerItemElement {
 }
 
 // 7) DSL on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     // Internal creators
     fileprivate func createPicker(_ init: (WebPickerElement) -> Void) -> WebPickerElement {
         let el = WebPickerElement()

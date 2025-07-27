@@ -7,7 +7,7 @@
 
 import Foundation
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     fileprivate func createVariable(_ init: (_ element: WebVariableElement) -> Void) -> WebVariableElement {
         
@@ -81,7 +81,7 @@ var valueObserverInterval\(builderId) = setInterval(function() {
     
 }
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     fileprivate func addInternalVarMonitor(_ element: WebVariableElement) {
         // observer to keep hidden field in sync

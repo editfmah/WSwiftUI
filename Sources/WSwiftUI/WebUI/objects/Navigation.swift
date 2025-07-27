@@ -18,7 +18,7 @@ public enum NavBarBackground: String {
 }
 
 // MARK: – DSL
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
   @discardableResult
   func NavBar(
     brand: String,
@@ -194,7 +194,7 @@ public extension BaseWebEndpoint {
 public class WebNavBarDropdownHeaderElement: WebCoreElement {}
 
 // MARK: – DSL
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
   /// Renders a non-clickable header inside a dropdown
   @discardableResult
   func NavDropdownHeader(_ title: String) -> WebNavBarDropdownHeaderElement {

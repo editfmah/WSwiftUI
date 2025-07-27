@@ -46,7 +46,7 @@ public extension WebAlertElement {
 }
 
 // 4) DSL on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Internal helper for creating alert elements
     fileprivate func createAlert(_ `init`: (_ element: WebAlertElement) -> Void) -> WebAlertElement {
         let element = WebAlertElement()

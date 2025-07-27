@@ -128,7 +128,7 @@ public extension WebButtonGroupElement {
 
 
 // 4) DSL on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     fileprivate func createButtonGroup(_ init: (_ element: WebButtonGroupElement) -> Void) -> WebButtonGroupElement {
         let element = WebButtonGroupElement()
         populateCreatedObject(element)

@@ -3,7 +3,7 @@ public class WebBreadcrumbElement: WebCoreElement {}
 public class WebBreadcrumbListElement: WebCoreElement {}
 public class WebBreadcrumbItemElement: WebCoreElement {}
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
   
   /// `<nav aria-label="breadcrumb"><ol class="breadcrumb">…</ol></nav>`
   @discardableResult

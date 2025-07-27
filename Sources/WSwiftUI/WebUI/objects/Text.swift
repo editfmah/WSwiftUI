@@ -116,7 +116,7 @@ internal extension String {
 }
 
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     // MARK: – Plain text
     @discardableResult

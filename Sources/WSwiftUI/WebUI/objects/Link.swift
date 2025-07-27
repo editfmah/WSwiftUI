@@ -10,7 +10,7 @@ import Foundation
 /// Represents an anchor (<a>) element within the DSL.
 public class WebLinkElement: WebCoreElement {}
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Factory to create and register a WebLinkElement with the endpoint.
     /// - Parameters:
     ///   - href: URL string for the link.

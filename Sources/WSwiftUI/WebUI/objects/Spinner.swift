@@ -33,7 +33,7 @@ public class WebSpinnerElement : WebCoreElement {
 }
 
 // 3) The BaseWebEndpoint factory, no parameters…
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     fileprivate func create(_ init: (_ element: WebSpinnerElement) -> Void) -> WebSpinnerElement {
         

@@ -75,7 +75,7 @@ public extension WebTableCellElement {
 }
 
 // 4) DSL on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     // Create overloads
     fileprivate func createTable(_ `init`: (_ element: WebTableElement) -> Void) -> WebTableElement {
         let element = WebTableElement()

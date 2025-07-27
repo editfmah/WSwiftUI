@@ -70,7 +70,7 @@ public extension WebProgressBarElement {
 }
 
 // 5) DSL factories on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Creates a <div class="progress"> container
     @discardableResult
     func Progress(_ content: WebComposerClosure) -> WebProgressElement {

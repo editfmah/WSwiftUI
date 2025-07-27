@@ -43,7 +43,7 @@ public extension WebSpacerElement {
 }
 
 // 3) DSL factory on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Inserts a Spacer (<div class="flex-grow-1">) in a flex container
     @discardableResult
     func Spacer() -> WebSpacerElement {

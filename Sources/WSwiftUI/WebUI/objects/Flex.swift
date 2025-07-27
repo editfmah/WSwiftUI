@@ -116,7 +116,7 @@ public extension WebCoreElement {
 }
 
 // 5) DSL factory on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Creates a <div class="d-flex"> flex container
     @discardableResult
     func Flex(_ content: WebComposerClosure) -> WebFlexElement {

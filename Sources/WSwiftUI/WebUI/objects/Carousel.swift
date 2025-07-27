@@ -109,7 +109,7 @@ public extension WebCarouselControlElement {
 }
 
 // 7) DSL on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Main carousel container
     @discardableResult
     func Carousel(id: String,

@@ -408,7 +408,7 @@ public protocol WebApiEndpoint {
     func acceptedRoles() -> [String]?
 }
 
-open class BaseWebEndpoint {
+open class CoreWebEndpoint {
     
     // create a new object and return it
     public func create() -> Self {
@@ -476,7 +476,7 @@ open class BaseWebEndpoint {
     
 }
 
-class Test : BaseWebEndpoint, WebEndpoint, WebContentEndpoint {
+class Test : CoreWebEndpoint, WebEndpoint, WebContentEndpoint {
 
     public required init() {
         super.init()

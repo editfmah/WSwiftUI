@@ -52,7 +52,7 @@ public enum CodeLanguage: String, CaseIterable {
     case kotlin = "kotlin"
 }
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     // MARK: – Plain text
     @discardableResult

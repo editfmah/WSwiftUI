@@ -107,7 +107,7 @@ public extension WebOptionElement {
 }
 
 // 4) DSL factories
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Wraps form controls (adds mb-3)
     @discardableResult
     func FormGroup(_ content: WebComposerClosure) -> WebFormGroupElement {

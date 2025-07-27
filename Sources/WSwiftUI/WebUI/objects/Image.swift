@@ -49,7 +49,7 @@ public extension WebImageElement {
 }
 
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     fileprivate func create(_ init: (_ element: WebImageElement) -> Void) -> WebImageElement {
         

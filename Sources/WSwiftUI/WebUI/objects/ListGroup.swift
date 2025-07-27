@@ -75,7 +75,7 @@ public extension WebListGroupItemElement {
 }
 
 // 5) DSL factories on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     /// Creates a <ul class="list-group [flush] [horizontal] [numbered]"> container
     @discardableResult
     func ListGroup(_ content: WebComposerClosure) -> WebListGroupElement {

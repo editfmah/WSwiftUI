@@ -96,7 +96,7 @@ public extension WebOffCanvasFooterElement {
 }
 
 // 8) DSL on BaseWebEndpoint
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     @discardableResult
     func OffCanvas(
         id: String,

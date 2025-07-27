@@ -7,7 +7,7 @@
 
 let tab = "    "
 
-internal extension BaseWebEndpoint {
+internal extension CoreWebEndpoint {
     
     /// Override this in your endpoints to supply whatever head elements you need.
     

@@ -5,7 +5,7 @@
 //  Created by Adrian on 04/07/2025.
 //
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     @discardableResult
     func webpage(_ closure: WebComposerClosure) -> WebCoreElement {

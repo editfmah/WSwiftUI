@@ -5,7 +5,7 @@
 //  Created by Adrian on 16/07/2025.
 //
 
-public extension BaseWebEndpoint {
+public extension CoreWebEndpoint {
     
     @discardableResult
     func WrapInLayoutContainer(_ closure: WebComposerClosure) -> Any {
