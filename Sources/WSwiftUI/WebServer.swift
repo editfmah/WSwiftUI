@@ -82,6 +82,11 @@ public class WSwiftServer {
             // populate the handler
             endpoint.request = request
             
+            // extract any values from the request and put them into the web data object
+            endpoint.data.consume(request.queryparams)
+            endpoint.data.consume(request.headers)
+            endpoint.data.consume(request.body)
+            
             if var contentEndpoint = endpoint as? WebContentEndpoint {
                 // set the content handler
                 contentEndpoint.ephemeralData["user_roles"] = grants

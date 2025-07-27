@@ -304,6 +304,7 @@ public class WebCoreElement {
 
 public protocol WebEndpoint {
     
+    var data: WebData { get set }
     var request: HttpRequest { get set }
     var controller: String? { get set }
     var method: String? { get set }
@@ -417,6 +418,7 @@ open class CoreWebEndpoint {
     
     public required init() {}
     
+    public var data: WebData = WebData()
     public var request: HttpRequest = HttpRequest()
     
     // session data
