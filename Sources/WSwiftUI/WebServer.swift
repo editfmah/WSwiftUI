@@ -49,6 +49,8 @@ public class WSwiftServer {
             var endpoint = newEndpoint.create()
             var grants: [String] = []
             
+            endpoint.authenticationIdentifier = request.authenticationToken
+            
             if endpoint.authenticationRequired.contains(.authenticated) {
                 if let token = request.authenticationToken, let authenticator = self.getUserRoles, let currentGrants = authenticator(token, endpoint) {
                     grants = currentGrants
@@ -86,11 +88,7 @@ public class WSwiftServer {
             endpoint.data.consume(request.queryparams)
             endpoint.data.consume(request.headers)
             endpoint.data.consume(request.body)
-            
-            if var contentEndpoint = endpoint as? WebContentEndpoint {
-                // set the content handler
-                contentEndpoint.ephemeralData["user_roles"] = grants
-            }
+            endpoint.ephemeralData["user_roles"] = grants
             
             // build the menu structure
             var menus: [MenuEntry] = []
@@ -218,10 +216,10 @@ public class WSwiftServer {
                     // build the html response from the response object
                     if endpoint is WebContentEndpoint {
                         let pageContent = endpoint.renderWebPage()
-                        return HttpResponse.ok(.html(pageContent), endpoint.newAuthenticationIdentifier ?? endpoint.newAuthenticationIdentifier)
+                        return HttpResponse.ok(.html(pageContent), endpoint.authenticationIdentifier ?? endpoint.newAuthenticationIdentifier)
                     }
                 } else if let response = response as? Codable {
-                    return HttpResponse.ok(.json(response), endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier)
+                    return HttpResponse.ok(.json(response), endpoint.authenticationIdentifier ?? endpoint.authenticationIdentifier)
                 }
                 
                 return .notFound

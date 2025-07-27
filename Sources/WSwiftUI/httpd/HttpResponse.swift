@@ -161,10 +161,9 @@ public enum HttpResponse {
             default:break
             }
                 if let cookieAuth = auth {
-                    // Set a live cookie that lasts for 24 h (86 400 s)
                     headers.append((
                       "Set-Cookie",
-                      "AuthToken=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=86400;"
+                      "AuthToken=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=600;"
                     ))
                 } else {
                     // Clear the cookie immediately
@@ -183,7 +182,7 @@ public enum HttpResponse {
                     // Set a live cookie that lasts for 24 h (86 400 s)
                     headers.append((
                       "Set-Cookie",
-                      "AuthToken=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=86400"
+                      "AuthToken=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=600"
                     ))
                 } else {
                     // Clear the cookie immediately

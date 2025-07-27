@@ -311,7 +311,8 @@ public protocol WebEndpoint {
     var authenticationRequired: [WebAuthenticationStatus] { get set }
     func create() -> Self
     static func path(action: WebRequestActivity?, resource: UUID?, subResource: UUID?, version: UUID?, filter: [String: String]?, fragment: String?, returnUrl: String?) -> String
-
+    var ephemeralData: [String : Any?] { get set }
+    var authenticationIdentifier: String? { get set }
 }
 
 public extension WebEndpoint {
@@ -401,7 +402,6 @@ public protocol WebContentEndpoint {
     func authenticateSession(token: String, expiry: Date?)
     func deauthenticateSession()
     func acceptedRoles(for action: WebRequestActivity) -> [String]?
-    var ephemeralData: [String : Any?] { get set }
 }
 
 public protocol WebApiEndpoint {
