@@ -103,8 +103,18 @@ public class WSwiftServer {
                     
                     if e is MenuIndexable {
                         
+                        // we need to check if the endpoint is visible when logged in or logged out
+                        if e.authenticationRequired.contains(.authenticated) && grants.isEmpty {
+                            continue // skip this item
+                        }
+                        
+                        // check if it's unauthenticated only, but user is logged in
+                        if e.authenticationRequired.contains(.unauthenticated) && (e.authenticationRequired.contains(.authenticated) == false) && (grants.isEmpty == false) {
+                            continue // skip this item
+                        }
+                        
                         // we now need to check if we have permissions to see it
-                        if e.authenticationRequired.contains(.unauthenticated) == false {
+                        if e.authenticationRequired.contains(.authenticated) {
                             
                             // cast the object into a cotent or api
                             if let content = e as? WebContentEndpoint {
