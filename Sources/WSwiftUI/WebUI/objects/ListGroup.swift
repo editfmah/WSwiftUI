@@ -11,11 +11,6 @@ import Foundation
 public class WebListGroupElement: WebCoreElement {}
 public class WebListGroupItemElement: WebCoreElement {}
 
-// 2) Variant enum for contextual item backgrounds
-public enum ListGroupVariant: String {
-    case primary, secondary, success, danger, warning, info, light, dark
-}
-
 // 3) Fluent modifiers for ListGroup container
 public extension WebListGroupElement {
     /// Removes borders and rounded corners
@@ -50,7 +45,8 @@ public extension WebListGroupElement {
 public extension WebListGroupItemElement {
     /// Applies contextual background (`list-group-item-<variant>`)
     @discardableResult
-    func variant(_ variant: ListGroupVariant) -> Self {
+    func variant(_ variant: BootstrapVariant) -> Self {
+        addAttribute(.variant(variant))
         addAttribute(.class("list-group-item-\(variant.rawValue)"))
         return self
     }
@@ -92,7 +88,7 @@ public extension CoreWebEndpoint {
     /// Creates a <li class="list-group-item [variants] [active] [disabled]">title</li>
     @discardableResult
     func ListGroupItem(_ title: String,
-                       variant: ListGroupVariant? = nil,
+                       variant: BootstrapVariant? = nil,
                        active: Bool = false,
                        disabled: Bool = false) -> WebListGroupItemElement {
         guard let _ = stack.last as? WebListGroupElement else {

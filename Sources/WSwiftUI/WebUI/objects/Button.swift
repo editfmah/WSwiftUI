@@ -10,11 +10,6 @@ import Foundation
 // 1) Dedicated subclass for Button
 public class WebButtonElement: WebCoreElement {}
 
-// 2) Button-specific enums
-public enum ButtonStyle: String {
-    case primary, secondary, success, danger, warning, info, light, dark, link
-}
-
 public enum ButtonSize: String {
     case small = "btn-sm"
     case large = "btn-lg"
@@ -31,14 +26,15 @@ public extension WebButtonElement {
 
     /// Sets the button variant (e.g. `.primary`, `.secondary`, etc.)
     @discardableResult
-    func variant(_ style: ButtonStyle) -> Self {
-        addAttribute(.class("btn-\(style.rawValue)"))
+    func variant(_ variant: BootstrapVariant) -> Self {
+        addAttribute(.variant(variant))
+        addAttribute(.class("btn-\(variant.rawValue)"))
         return self
     }
 
     /// Sets an outline variant (e.g. `.outline(.primary)`)
     @discardableResult
-    func outline(_ style: ButtonStyle) -> Self {
+    func outline(_ style: BootstrapVariant) -> Self {
         addAttribute(.class("btn-outline-\(style.rawValue)"))
         return self
     }

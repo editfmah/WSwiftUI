@@ -67,7 +67,7 @@ public extension CoreWebEndpoint {
     /// Creates a <form> element with optional attributes
     @discardableResult
     func Form(action: String? = nil,
-              method: FormMethod = .get,
+              method: FormMethod = .post,
               encType: FormEncType? = nil,
               autoComplete: String? = nil,
               noValidate: Bool = false,
@@ -94,16 +94,4 @@ public extension CoreWebEndpoint {
         return form
     }
 
-    /// Convenience to add a submit button inside a form
-    @discardableResult
-    func SubmitButton(_ title: String = "Submit",
-                       variant: ButtonStyle = .primary,
-                       size: ButtonSize? = nil)
-    -> WebButtonElement {
-        let btn = Button(title)
-        btn.type("submit")
-        btn.variant(variant)
-        if let s = size { btn.size(s) }
-        return btn
-    }
 }

@@ -8,7 +8,9 @@
 import Foundation
 import WSwiftUI
 
-class HomePage : BaseWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
+class HomePage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
+    
+    var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     
     var menuPrimary: String = "Home"
     
@@ -114,8 +116,6 @@ class HomePage : BaseWebEndpoint, WebEndpoint, MenuIndexable {
     var controller: String? = nil
     
     var method: String? = nil
-    
-    var authenticationRequired: Bool = false
     
     func acceptedRoles(for action: WebRequestActivity) -> [String]? {
         return nil

@@ -11,10 +11,6 @@ import Foundation
 public class WebProgressElement: WebCoreElement {}
 public class WebProgressBarElement: WebCoreElement {}
 
-// 2) Variant enum for contextual bar colors
-public enum ProgressVariant: String {
-    case primary, secondary, success, danger, warning, info, light, dark
-}
 
 // 3) Fluent modifiers for Progress container
 public extension WebProgressElement {
@@ -45,7 +41,8 @@ public extension WebProgressBarElement {
 
     /// Applies a contextual background (e.g. bg-success)
     @discardableResult
-    func variant(_ variant: ProgressVariant) -> Self {
+    func variant(_ variant: BootstrapVariant) -> Self {
+        addAttribute(.variant(variant))
         addAttribute(.class("bg-\(variant.rawValue)"))
         return self
     }
@@ -88,7 +85,7 @@ public extension CoreWebEndpoint {
     @discardableResult
     func ProgressBar(value: Int,
                      max: Int = 100,
-                     variant: ProgressVariant? = nil,
+                     variant: BootstrapVariant? = nil,
                      striped: Bool = false,
                      animated: Bool = false) -> WebProgressBarElement {
         guard let _ = stack.last as? WebProgressElement else {
@@ -111,7 +108,7 @@ public extension CoreWebEndpoint {
     @discardableResult
     func ProgressBar(_ variable: WebVariableElement,
                      max: Int = 100,
-                     variant: ProgressVariant? = nil,
+                     variant: BootstrapVariant? = nil,
                      striped: Bool = false,
                      animated: Bool = false) -> WebProgressBarElement {
         guard let _ = stack.last as? WebProgressElement else {
@@ -156,7 +153,7 @@ setInterval(function() {
     @discardableResult
     func ProgressBar(_ variable: WebVariableElement,
                      max: Double,
-                     variant: ProgressVariant? = nil,
+                     variant: BootstrapVariant? = nil,
                      striped: Bool = false,
                      animated: Bool = false) -> WebProgressBarElement {
         guard let _ = stack.last as? WebProgressElement else {

@@ -8,7 +8,9 @@
 import Foundation
 import WSwiftUI
 
-class PurposePage : BaseWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
+class PurposePage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
+    
+    var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     
     var menuPrimary: String = "Purpose"
     
@@ -31,9 +33,7 @@ class PurposePage : BaseWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexa
     var controller: String? = "purpose"
     
     var method: String? = nil
-    
-    var authenticationRequired: Bool = false
-    
+      
     func acceptedRoles(for action: WebRequestActivity) -> [String]? {
         return nil
     }

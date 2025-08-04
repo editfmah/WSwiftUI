@@ -3,16 +3,13 @@ import Foundation
 // 1) Dedicated subclass for Alert
 public class WebAlertElement: WebCoreElement {}
 
-// 2) Variant enum
-public enum AlertVariant: String {
-    case primary, secondary, success, danger, warning, info, light, dark
-}
 
 // 3) Fluent methods for alert behaviors
 public extension WebAlertElement {
     /// Sets the alert variant (e.g. `.success`, `.danger`, etc.)
     @discardableResult
-    func variant(_ variant: AlertVariant) -> Self {
+    func variant(_ variant: BootstrapVariant) -> Self {
+        addAttribute(.variant(variant))
         addAttribute(.class("alert-\(variant.rawValue)"))
         return self
     }
@@ -57,7 +54,7 @@ public extension CoreWebEndpoint {
 
     /// Builds a Bootstrap alert
     @discardableResult
-    func Alert(_ variant: AlertVariant = .primary, dismissible: Bool = false, _ content: WebComposerClosure) -> WebAlertElement {
+    func Alert(_ variant: BootstrapVariant = .primary, dismissible: Bool = false, _ content: WebComposerClosure) -> WebAlertElement {
         // Outer <div class="alert alert-<variant>" role="alert">
         let alert = createAlert { el in
             el.elementName = "div"

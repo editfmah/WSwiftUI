@@ -8,7 +8,7 @@
 import Foundation
 import WSwiftUI
 
-extension BaseWebEndpoint {
+extension CoreWebEndpoint {
     
     func Template(_ content: WebComposerClosure) -> WebCoreElement {
         

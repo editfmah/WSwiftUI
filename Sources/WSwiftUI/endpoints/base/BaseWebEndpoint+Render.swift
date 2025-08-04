@@ -7,6 +7,36 @@
 
 let tab = "    "
 
+fileprivate extension WebCoreElement {
+    var value: String {
+        get {
+            if let value = attributes.first(where: { if case .value(let v) = $0 { return true }
+                return false
+            }) {
+               switch value {
+                    case .value(let v): return v
+                    default: return ""
+                }
+            }
+            return ""
+        }
+    }
+    var selected: Bool {
+        get {
+            return attributes.contains { if case .selected = $0 { return true }
+                return false
+            }
+        }
+    }
+    var disabled: Bool {
+        get {
+            return attributes.contains { if case .disabled = $0 { return true }
+                return false
+            }
+        }
+    }
+}
+
 internal extension CoreWebEndpoint {
     
     /// Override this in your endpoints to supply whatever head elements you need.
@@ -43,45 +73,83 @@ internal extension CoreWebEndpoint {
         var otherParts: [String] = []
         var innerText: String? = nil
         var scripts: [String] = []
+        var items: [String] = [] // internal items for combos, dropdowns, segmented controls etc.
         
         // insert the registration script as the first script
         let registrationScript = "var \(element.builderId) = document.getElementsByClassName('\(element.builderId)')[0];"
         scripts.append(registrationScript)
-
+        
         for attr in element.attributes {
             switch attr {
-            case .class(let v):
-                classValues.append(v)
-
-            case .style(let v):
-                styleValues.append(v)
-
-            case .id(let v):           otherParts.append("id=\"\(v)\"")
-            case .name(let v):         otherParts.append("name=\"\(v)\"")
-            case .value(let v):        otherParts.append("value=\"\(v)\"")
-            case .type(let v):         otherParts.append("type=\"\(v)\"")
-            case .placeholder(let v):  otherParts.append("placeholder=\"\(v)\"")
-            case .required:            otherParts.append("required")
-            case .disabled:            otherParts.append("disabled")
-            case .readonly:            otherParts.append("readonly")
-            case .checked:             otherParts.append("checked")
-            case .selected:            otherParts.append("selected")
-            case .src(let v):          otherParts.append("src=\"\(v)\"")
-            case .href(let v):         otherParts.append("href=\"\(v)\"")
-            case .alt(let v):          otherParts.append("alt=\"\(v)\"")
-            case .title(let v):        otherParts.append("title=\"\(v)\"")
-            case .data(let key):       otherParts.append("data-\(key)")
-            case .custom(let s):       otherParts.append(s)
-            case .pair(let k, let v):  otherParts.append("\(k)=\"\(v)\"")
-            case .internalType(let t): otherParts.append("data-internal-type=\"\(t)\"")
-            case .script(let js):      scripts.append(js)
-            case .innerHTML(let html): innerText = html
+                case .class(let v):
+                    classValues.append(v)
+                    
+                case .style(let v):
+                    styleValues.append(v)
+                    
+                case .id(let v):           otherParts.append("id=\"\(v)\"")
+                case .name(let v):         otherParts.append("name=\"\(v)\"")
+                case .value(let v):        otherParts.append("value=\"\(v)\"")
+                case .type(let v):         otherParts.append("type=\"\(v)\"")
+                case .placeholder(let v):  otherParts.append("placeholder=\"\(v)\"")
+                case .required:            otherParts.append("required")
+                case .disabled:            otherParts.append("disabled")
+                case .readonly:            otherParts.append("readonly")
+                case .checked:             otherParts.append("checked")
+                case .selected:            otherParts.append("selected")
+                case .src(let v):          otherParts.append("src=\"\(v)\"")
+                case .href(let v):         otherParts.append("href=\"\(v)\"")
+                case .alt(let v):          otherParts.append("alt=\"\(v)\"")
+                case .title(let v):        otherParts.append("title=\"\(v)\"")
+                case .data(let key):       otherParts.append("data-\(key)")
+                case .custom(let s):       otherParts.append(s)
+                case .pair(let k, let v):  otherParts.append("\(k)=\"\(v)\"")
+                case .script(let js):      scripts.append(js)
+                case .innerHTML(let html): innerText = html
+                case .item(_):
+                    break;
+                case .variant(_):
+                    break;
+                case .parent(_):
+                    break;
             }
         }
-
+        
+        // build the items up now if there are any
+        if let picker = element as? WebPickerElement {
+            
+            // pick out only the subitems
+            let subItems  = element.attributes.filter {
+                if case .item = $0 { return true }
+                return false
+            }
+            
+            switch picker.type {
+                case .combo:
+                    // render all items as <option> elements
+                    for item in subItems {
+                        if case .item(let item) = item {
+                            var option = "<option value=\"\(item.attributes.first(where: ))\""
+                            if selected { option += " selected" }
+                            if disabled { option += " disabled" }
+                            option += ">\(title)</option>"
+                            items.append(option)
+                        }
+                    }
+                case .segmented:
+                    break;
+                case .radio:
+                    break;
+                case .colorPicker:
+                    break;
+                case .menu:
+                    break;
+            }
+        }
+        
         // 2. now build the final attribute list
         var parts: [String] = []
-
+        
         if !classValues.isEmpty {
             // join with spaces
             let allClasses = classValues.joined(separator: " ")
@@ -93,41 +161,43 @@ internal extension CoreWebEndpoint {
             parts.append("style=\"\(allStyles)\"")
         }
         parts.append(contentsOf: otherParts)
-
+        
         // 3. open tag (no “>” or newline yet)
         let attrString = parts.isEmpty ? "" : " " + parts.joined(separator: " ")
         var result = "\(indent)<\(element.elementName)\(attrString)"
-
+        
         // flags
         let hasInner   = innerText != nil
         let hasChildren = !element.subElements.isEmpty
         let hasScripts = !scripts.isEmpty
-
+        
         // 4a. nothing inside? close inline
-        if !hasInner && !hasChildren && !hasScripts {
+        if !hasInner && !hasChildren && !hasScripts && items.isEmpty {
             result += "></\(element.elementName)>\n"
             return result
         }
-
+        
         // 4b. there is something—emit children in order
         result += ">"
         if element.subElements.isEmpty == false {
             result += "\n"
         }
         let childIndent = indent + tab
-
+        
         // 4b.i innerHTML first
         if let html = innerText, element.subElements.isEmpty {
             result += "\(html)"
         } else if let html = innerText {
             result += "\(childIndent)\(html)\n"
+        } else if items.isEmpty == false {
+            result += items.joined(separator: "\n")
         }
-
+        
         // 4b.ii then any nested elements
         for child in element.subElements {
             result += render(child, indent: childIndent)
         }
-
+        
         // 4c. close tag
         if element.subElements.isEmpty == false {
             result += "\(indent)</\(element.elementName)>\n"
@@ -140,89 +210,89 @@ internal extension CoreWebEndpoint {
             result += "\(childIndent)<script>\(js)</script>\n"
         }
         return result
-
+        
     }
-
+    
     
     /// Renders a single head element with the given indent and a trailing newline.
     private func render(_ element: WebCoreHeadElement, indent: String) -> String {
         switch element {
-        case .title(let text):
-            return "\(indent)<title>\(text)</title>\n"
-            
-        case .base(let href):
-            return "\(indent)<base href=\"\(href)\" />\n"
-            
-        // MARK: Meta tags
-        case .metaCharset(let charset):
-            return "\(indent)<meta charset=\"\(charset)\" />\n"
-            
-        case .metaHttpEquiv(let httpEquiv, let content):
-            return "\(indent)<meta http-equiv=\"\(httpEquiv)\" content=\"\(content)\" />\n"
-            
-        case .metaName(let name, let content):
-            return "\(indent)<meta name=\"\(name)\" content=\"\(content)\" />\n"
-            
-        case .metaProperty(let prop, let content):
-            return "\(indent)<meta property=\"\(prop)\" content=\"\(content)\" />\n"
-            
-        case .metaViewport(let content):
-            return "\(indent)<meta name=\"viewport\" content=\"\(content)\" />\n"
-            
-        case .metaThemeColor(let color):
-            return "\(indent)<meta name=\"theme-color\" content=\"\(color)\" />\n"
-            
-        case .metaDescription(let desc):
-            return "\(indent)<meta name=\"description\" content=\"\(desc)\" />\n"
-            
-        case .metaApplicationName(let name):
-            return "\(indent)<meta name=\"application-name\" content=\"\(name)\" />\n"
-            
-        case .metaMobileWebAppCapable(let capable):
-            let val = capable ? "yes" : "no"
-            return "\(indent)<meta name=\"mobile-web-app-capable\" content=\"\(val)\" />\n"
-            
-        // MARK: Link tags
-        case .link(let rel, let href, let type, let sizes, let color, let attrs):
-            var parts: [String] = ["rel=\"\(rel.stringValue)\"", "href=\"\(href)\""]
-            if let t = type        { parts.append("type=\"\(t)\"") }
-            if let s = sizes       { parts.append("sizes=\"\(s)\"") }
-            if let c = color       { parts.append("color=\"\(c)\"") }
-            if let extra = attrs {
-                for (k,v) in extra { parts.append("\(k)=\"\(v)\"") }
-            }
-            return "\(indent)<link \(parts.joined(separator: " ")) />\n"
-            
-        // MARK: Scripts & Styles
-        case .script(let src, let async, let `defer`, let type, let integrity, let crossOrigin):
-            var parts: [String] = ["src=\"\(src)\""]
-            if async               { parts.append("async") }
-            if `defer`             { parts.append("defer") }
-            if let t = type        { parts.append("type=\"\(t)\"") }
-            if let i = integrity   { parts.append("integrity=\"\(i)\"") }
-            if let co = crossOrigin{ parts.append("crossorigin=\"\(co)\"") }
-            return "\(indent)<script \(parts.joined(separator: " "))></script>\n"
-            
-        case .inlineScript(let code):
-            return "\(indent)<script>\n\(indent)\(tab)\(code)\n\(indent)</script>\n"
-            
-        case .styleLink(let href):
-            return "\(indent)<link rel=\"stylesheet\" href=\"\(href)\" />\n"
-            
-        case .inlineStyle(let css):
-            return "\(indent)<style>\n\(indent)\(tab)\(css)\n\(indent)</style>\n"
-            
-        // MARK: Comment & Custom
-        case .comment(let text):
-            return "\(indent)<!-- \(text) -->\n"
-            
-        case .custom(let tag, let attributes, let innerHTML):
-            let attrs = attributes.map { "\($0)=\"\($1)\"" }.joined(separator: " ")
-            if let inner = innerHTML {
-                return "\(indent)<\(tag) \(attrs)>\(inner)</\(tag)>\n"
-            } else {
-                return "\(indent)<\(tag) \(attrs) />\n"
-            }
+            case .title(let text):
+                return "\(indent)<title>\(text)</title>\n"
+                
+            case .base(let href):
+                return "\(indent)<base href=\"\(href)\" />\n"
+                
+                // MARK: Meta tags
+            case .metaCharset(let charset):
+                return "\(indent)<meta charset=\"\(charset)\" />\n"
+                
+            case .metaHttpEquiv(let httpEquiv, let content):
+                return "\(indent)<meta http-equiv=\"\(httpEquiv)\" content=\"\(content)\" />\n"
+                
+            case .metaName(let name, let content):
+                return "\(indent)<meta name=\"\(name)\" content=\"\(content)\" />\n"
+                
+            case .metaProperty(let prop, let content):
+                return "\(indent)<meta property=\"\(prop)\" content=\"\(content)\" />\n"
+                
+            case .metaViewport(let content):
+                return "\(indent)<meta name=\"viewport\" content=\"\(content)\" />\n"
+                
+            case .metaThemeColor(let color):
+                return "\(indent)<meta name=\"theme-color\" content=\"\(color)\" />\n"
+                
+            case .metaDescription(let desc):
+                return "\(indent)<meta name=\"description\" content=\"\(desc)\" />\n"
+                
+            case .metaApplicationName(let name):
+                return "\(indent)<meta name=\"application-name\" content=\"\(name)\" />\n"
+                
+            case .metaMobileWebAppCapable(let capable):
+                let val = capable ? "yes" : "no"
+                return "\(indent)<meta name=\"mobile-web-app-capable\" content=\"\(val)\" />\n"
+                
+                // MARK: Link tags
+            case .link(let rel, let href, let type, let sizes, let color, let attrs):
+                var parts: [String] = ["rel=\"\(rel.stringValue)\"", "href=\"\(href)\""]
+                if let t = type        { parts.append("type=\"\(t)\"") }
+                if let s = sizes       { parts.append("sizes=\"\(s)\"") }
+                if let c = color       { parts.append("color=\"\(c)\"") }
+                if let extra = attrs {
+                    for (k,v) in extra { parts.append("\(k)=\"\(v)\"") }
+                }
+                return "\(indent)<link \(parts.joined(separator: " ")) />\n"
+                
+                // MARK: Scripts & Styles
+            case .script(let src, let async, let `defer`, let type, let integrity, let crossOrigin):
+                var parts: [String] = ["src=\"\(src)\""]
+                if async               { parts.append("async") }
+                if `defer`             { parts.append("defer") }
+                if let t = type        { parts.append("type=\"\(t)\"") }
+                if let i = integrity   { parts.append("integrity=\"\(i)\"") }
+                if let co = crossOrigin{ parts.append("crossorigin=\"\(co)\"") }
+                return "\(indent)<script \(parts.joined(separator: " "))></script>\n"
+                
+            case .inlineScript(let code):
+                return "\(indent)<script>\n\(indent)\(tab)\(code)\n\(indent)</script>\n"
+                
+            case .styleLink(let href):
+                return "\(indent)<link rel=\"stylesheet\" href=\"\(href)\" />\n"
+                
+            case .inlineStyle(let css):
+                return "\(indent)<style>\n\(indent)\(tab)\(css)\n\(indent)</style>\n"
+                
+                // MARK: Comment & Custom
+            case .comment(let text):
+                return "\(indent)<!-- \(text) -->\n"
+                
+            case .custom(let tag, let attributes, let innerHTML):
+                let attrs = attributes.map { "\($0)=\"\($1)\"" }.joined(separator: " ")
+                if let inner = innerHTML {
+                    return "\(indent)<\(tag) \(attrs)>\(inner)</\(tag)>\n"
+                } else {
+                    return "\(indent)<\(tag) \(attrs) />\n"
+                }
         }
     }
 }

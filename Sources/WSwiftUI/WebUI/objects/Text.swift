@@ -124,36 +124,24 @@ public extension CoreWebEndpoint {
         var result: WebCoreElement?
         
         // if we’re inside a picker, branch on its type…
-        if let parent = parent, parent.isPicker(), let type = parent.pickerType() {
-            switch type {
-                case .dropdown:
-                    result = create { element in
-                        element.elementName  = "option"
-                        element.class("text")
-                        element.innerHTML(text)
-                        element.class("col")
-                    }
-                case .segmented:
-                    result = create { element in
-                        element.elementName  = "button"
-                        element.class("\(element.builderId) btn btn-secondary text")
-                        element.innerHTML(text)
-                        // the <button> needs a "button" type
-                        element.script("\(element.builderId).type = 'button';")
-                        element.class("col")
-                    }
-                default:
-                    break
+        if let parent = parent {
+            if let parent = parent as? WebPickerElement {
+                result = WebCoreElement()
+                result?.title(text)
+                parent.addAttribute(.item(result!))
             }
         }
-        WrapInLayoutContainer {
-            // default (no picker)
-            result = create { element in
-                element.elementName  = "span"
-                element.class("text")
-                // we need to ensure that the text output is safe for HTML, so we escape it
-                element.innerHTML(text.escapedForHTML())
-                element.class("col")
+        
+        if result == nil {
+            WrapInLayoutContainer {
+                // default (no picker)
+                result = create { element in
+                    element.elementName  = "span"
+                    element.class("text")
+                    // we need to ensure that the text output is safe for HTML, so we escape it
+                    element.innerHTML(text.escapedForHTML())
+                    element.class("col")
+                }
             }
         }
         

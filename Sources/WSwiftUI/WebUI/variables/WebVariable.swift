@@ -170,7 +170,7 @@ var valueInterval\(element.builderId) = setInterval(function() {
             element.elementName = "input"
             element.class("hidden-input")
             element.id("hiddenInput_\(element.builderId)")
-            element.addAttribute(.pair("name", element.builderId))
+            element.addAttribute(.name(element.builderId))
             element.addAttribute(.type("hidden"))
             element.addAttribute(.script("var \(element.builderId) = '\(value)';"))
             element.setInitialValue(value)

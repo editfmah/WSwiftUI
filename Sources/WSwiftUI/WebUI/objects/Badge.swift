@@ -11,7 +11,7 @@ import Foundation
 public class WebBadgeElement: WebCoreElement {}
 
 // 2) Variant enum matching Bootstrap badge contextual colors
-public enum BadgeVariant: String {
+public enum BootstrapVariant: String {
     case primary, secondary, success, danger, warning, info, light, dark
 }
 
@@ -19,7 +19,8 @@ public enum BadgeVariant: String {
 public extension WebBadgeElement {
     /// Sets the badge color variant (`bg-<variant>`)
     @discardableResult
-    func variant(_ variant: BadgeVariant) -> Self {
+    func variant(_ variant: BootstrapVariant) -> Self {
+        addAttribute(.variant(variant))
         addAttribute(.class("bg-\(variant.rawValue)"))
         return self
     }
@@ -48,7 +49,7 @@ public extension CoreWebEndpoint {
     /// Renders a `<span class="badge bg-<variant> [rounded-pill]">` with provided text
     @discardableResult
     func Badge(_ title: String,
-               variant: BadgeVariant = .primary,
+               variant: BootstrapVariant = .primary,
                pill: Bool = false,
                linkStyle: Bool = false) -> WebBadgeElement {
         let badge = WebBadgeElement()

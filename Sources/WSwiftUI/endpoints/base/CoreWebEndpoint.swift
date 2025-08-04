@@ -29,11 +29,6 @@ public enum HeadItem {
     case raw(String)
 }
 
-
-public enum WebBuilderControlType {
-    case picker(type: PickerType)
-}
-
 public enum WebCoreHeadElement {
     case title(String)
     case base(href: String)
@@ -124,9 +119,11 @@ public enum WebCoreElementAttribute {
     case data(String)
     case custom(String)
     case pair(String, String)
-    case internalType(WebBuilderControlType)
     case script(String)
     case innerHTML(String)
+    case item(WebCoreElement)
+    case variant(BootstrapVariant)
+    case parent(Any)
 }
 
 internal enum WebCoreLayoutType {
@@ -168,6 +165,8 @@ public class WebCoreElement {
     
     @discardableResult
     public func name(_ name: String)  -> Self {
+        // remove existing name etries to stop duplication
+        attributes.removeAll(where: { if case .name(_) = $0 { return true } else { return false } })
         addAttribute(.name(name))
         return self
     }
@@ -186,6 +185,8 @@ public class WebCoreElement {
     
     @discardableResult
     public func type(_ type: String)  -> Self {
+        // remove existing type etries to stop duplication
+        attributes.removeAll(where: { if case .type(_) = $0 { return true } else { return false } })
         addAttribute(.type(type))
         return self
     }
@@ -272,32 +273,6 @@ public class WebCoreElement {
     public func custom(_ custom: String)  -> Self {
         addAttribute(.custom(custom))
         return self
-    }
-    
-    @discardableResult
-    public func setInternalType(_ type: WebBuilderControlType)  -> Self {
-        addAttribute(.internalType(type))
-        return self
-    }
-    
-    @discardableResult
-    public func isPicker() -> Bool {
-        for attribute in attributes {
-            if case .internalType(let controlType) = attribute, case .picker = controlType {
-                return true
-            }
-        }
-        return false
-    }
-    
-    @discardableResult
-    public func pickerType() -> PickerType?{
-        for attribute in attributes {
-            if case .internalType(let controlType) = attribute, case .picker(let type) = controlType {
-                return type
-            }
-        }
-        return nil
     }
     
 }
