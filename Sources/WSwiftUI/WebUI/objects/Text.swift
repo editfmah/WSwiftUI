@@ -162,22 +162,16 @@ public extension CoreWebEndpoint {
                 element.class(element.builderId)
                 
                 // initial value
-                element.script("""
-            \(element.builderId).innerText = '\(binding.asString())');
-            """)
+                element.addAttribute(.innerHTML(binding.asString()))
                 
-                // poll for updates
+                // register a callback for updates
                 element.script("""
-            l\(element.builderId)();
-            function l\(element.builderId)() {
-              const rl = () => {
-                \(element.builderId).innerText = \(binding.builderId);
-                return setTimeout(rl, 500);
-              };
-              rl();
-            }
-            """)
-                
+                    function updateVariable\(element.builderId)(value) {
+                        \(element.builderId).innerText = value;
+                    }
+                    addCallback\(binding.builderId)(updateVariable\(element.builderId));
+                """)
+
                 element.class("col")
             }
         }

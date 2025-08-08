@@ -21,20 +21,6 @@ public class WebPickerElement: WebCoreElement {
     var type: WebPickerType = .combo
 }
 
-public extension WebPickerElement {
-    @discardableResult
-    func label(_ text: String) -> Self {
-        switch self.type {
-            case .combo:
-                addAttribute(.custom("aria-label=\"\(text.escapedForHTML())\""))
-            case .segmented, .radio, .colorPicker, .menu:
-                // No label for these types
-                break
-        }
-        return self
-    }
-}
-
 // 7) DSL on BaseWebEndpoint
 public extension CoreWebEndpoint {
     // Internal creators
@@ -70,7 +56,7 @@ public extension CoreWebEndpoint {
                     el.value = binding
                     el.type = type
                     if let binding {
-                        el.addAttribute(.custom("onChange=\"\(binding.builderId) = this.value;\""))
+                        el.addAttribute(.custom("onChange=\"updateWebVariable\(binding.builderId)(this.value);\""))
                     }
                 }
                 stack.append(picker)

@@ -31,14 +31,23 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndex
                 Form(action: self.path) {
                     HStack {
                         VStack {
-                            Text("Combo:")
+                            //Text("Combo:")
                             let wVar = WString("zzz").name("web_var_1")
+                            let hide = WBool(false)
+                            TextField(binding: wVar).type(.text).name("text_input_1").placeholder("placehodler text").label("Text Input")
                             Picker(type: .combo, binding: wVar) {
                                 Text("Option 1").value("op1")
                                 Text("Option 2").value("op2")
                                 Text("Option 3").value("op3")
-                            }.name("combo_1")
+                            }.name("combo_1").label("Combo input").hidden(hide)
                             Button("Save").variant(.primary).type("SUBMIT")
+                            TextField(binding: wVar).type(.text).name("text_input_2").placeholder("another placeholder text").label("Second text input")
+                            Button("Set Value").variant(.secondary).onClick([
+                                .setVariable(wVar, to: "op2")
+                            ])
+                            Button("Hide Combo").variant(.info).onClick([
+                                .setVariable(hide, to: true)
+                            ])
                         }
                     }
                 }

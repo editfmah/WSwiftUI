@@ -39,10 +39,10 @@ extension String {
         
         // Per-round shift amounts
         let s: [UInt32] = [
-             7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
-             5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
-             4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
-             6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
+            7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+            5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+            4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+            6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
         ]
         
         // Process the message in successive 512-bit (64-byte) chunks
@@ -53,9 +53,9 @@ extension String {
             for j in 0..<16 {
                 let i = j * 4
                 M[j] = UInt32(chunk[i]) |
-                       (UInt32(chunk[i+1]) << 8) |
-                       (UInt32(chunk[i+2]) << 16) |
-                       (UInt32(chunk[i+3]) << 24)
+                (UInt32(chunk[i+1]) << 8) |
+                (UInt32(chunk[i+2]) << 16) |
+                (UInt32(chunk[i+3]) << 24)
             }
             
             // Initialize per-chunk variables
@@ -191,17 +191,17 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
     
     for action in actions {
         switch action {
-                // Background actions for elements
-            case .setBackgroundColor(let ref, let color):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.backgroundColor = '\(color.rgba)';\n"
-                } else {
-                    script += "\(builderId).style.backgroundColor = '\(color.rgba)';\n"
-                }
-                
-            case .setBackgroundImage(let ref, let url):
-                if let ref = ref {
-                    script += """
+            // Background actions for elements
+        case .setBackgroundColor(let ref, let color):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.backgroundColor = '\(color.rgba)';\n"
+            } else {
+                script += "\(builderId).style.backgroundColor = '\(color.rgba)';\n"
+            }
+            
+        case .setBackgroundImage(let ref, let url):
+            if let ref = ref {
+                script += """
                                 var element = document.getElementById('\(ref)');
                                 if (element) {
                                     element.style.backgroundImage = 'url(\(url))';
@@ -210,36 +210,36 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                                     element.style.backgroundPosition = 'center';
                                 }
                                 """
-                } else {
-                    script += """
+            } else {
+                script += """
                                 \(builderId).style.backgroundImage = 'url(\(url))';
                                 \(builderId).style.backgroundSize = 'cover';
                                 \(builderId).style.backgroundRepeat = 'no-repeat';
                                 \(builderId).style.backgroundPosition = 'center';
                                 """
-                }
-                
-            case .setBackgroundVideo(let ref, let url, let options):
-                let opts = options ?? BackgroundVideoOptions()
-                let loop = opts.loop ? "loop" : ""
-                let muted = opts.muted ? "muted" : ""
-                let autoplay = opts.autoplay ? "autoplay" : ""
-                let controls = opts.controls ? "controls" : ""
-                let poster = opts.poster != nil ? "poster='\(opts.poster!)'" : ""
-                let videoType = opts.videoType
-                
-                // Create a unique identifier for the video element
-                let videoId = "video_\(ref ?? builderId)"
-                
-                // Build the video element HTML
-                let videoHTML = """
+            }
+            
+        case .setBackgroundVideo(let ref, let url, let options):
+            let opts = options ?? BackgroundVideoOptions()
+            let loop = opts.loop ? "loop" : ""
+            let muted = opts.muted ? "muted" : ""
+            let autoplay = opts.autoplay ? "autoplay" : ""
+            let controls = opts.controls ? "controls" : ""
+            let poster = opts.poster != nil ? "poster='\(opts.poster!)'" : ""
+            let videoType = opts.videoType
+            
+            // Create a unique identifier for the video element
+            let videoId = "video_\(ref ?? builderId)"
+            
+            // Build the video element HTML
+            let videoHTML = """
                             <video id="\(videoId)" class="background-video" \(autoplay) \(loop) \(muted) \(controls) \(poster)>
                                 <source src="\(url)" type="\(videoType)">
                             </video>
                             """
-                
-                if let ref = ref {
-                    script += """
+            
+            if let ref = ref {
+                script += """
                                 var element = document.getElementById('\(ref)');
                                 if (element) {
                                     element.style.position = 'relative';
@@ -254,8 +254,8 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                                     videoElement.style.zIndex = '-1';
                                 }
                                 """
-                } else {
-                    script += """
+            } else {
+                script += """
                                 \(builderId).style.position = 'relative';
                                 \(builderId).insertAdjacentHTML('afterbegin', `\(videoHTML)`);
                                 var videoElement = document.getElementById('\(videoId)');
@@ -267,42 +267,42 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                                 videoElement.style.objectFit = 'cover';
                                 videoElement.style.zIndex = '-1';
                                 """
-                }
-                
-                // Background actions for the page
-            case .setPageBackgroundColor(let color):
-                script += """
+            }
+            
+            // Background actions for the page
+        case .setPageBackgroundColor(let color):
+            script += """
                             document.body.style.backgroundColor = '\(color.rgba)';
                             """
-                
-            case .setPageBackgroundImage(let url):
-                script += """
+            
+        case .setPageBackgroundImage(let url):
+            script += """
                             document.body.style.backgroundImage = 'url(\(url))';
                             document.body.style.backgroundSize = 'cover';
                             document.body.style.backgroundRepeat = 'no-repeat';
                             document.body.style.backgroundPosition = 'center';
                             """
-                
-            case .setPageBackgroundVideo(let url, let options):
-                let opts = options ?? BackgroundVideoOptions()
-                let loop = opts.loop ? "loop" : ""
-                let muted = opts.muted ? "muted" : ""
-                let autoplay = opts.autoplay ? "autoplay" : ""
-                let controls = opts.controls ? "controls" : ""
-                let poster = opts.poster != nil ? "poster='\(opts.poster!)'" : ""
-                let videoType = opts.videoType
-                
-                // Create a unique identifier for the video element
-                let videoId = "pageBackgroundVideo"
-                
-                // Build the video element HTML
-                let videoHTML = """
+            
+        case .setPageBackgroundVideo(let url, let options):
+            let opts = options ?? BackgroundVideoOptions()
+            let loop = opts.loop ? "loop" : ""
+            let muted = opts.muted ? "muted" : ""
+            let autoplay = opts.autoplay ? "autoplay" : ""
+            let controls = opts.controls ? "controls" : ""
+            let poster = opts.poster != nil ? "poster='\(opts.poster!)'" : ""
+            let videoType = opts.videoType
+            
+            // Create a unique identifier for the video element
+            let videoId = "pageBackgroundVideo"
+            
+            // Build the video element HTML
+            let videoHTML = """
                             <video id="\(videoId)" class="page-background-video" \(autoplay) \(loop) \(muted) \(controls) \(poster)>
                                 <source src="\(url)" type="\(videoType)">
                             </video>
                             """
-                
-                script += """
+            
+            script += """
                             var body = document.body;
                             body.style.margin = '0';
                             body.style.padding = '0';
@@ -316,23 +316,10 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             videoElement.style.objectFit = 'cover';
                             videoElement.style.zIndex = '-1';
                             """
-                
-            case .toggleArray(let variable, let value):
-                
+            
+        case .fadeIn(let ref, let duration):
+            if let ref = ref {
                 script += """
-                    var index = \(variable.builderId).indexOf('\(value)');
-                    if (index === -1) {
-                        \(variable.builderId).push('\(value)');
-                        document.getElementById('hiddenInput_\(variable.builderId)').value = JSON.stringify(\(variable.builderId));
-                    } else {
-                        \(variable.builderId).splice(index, 1);
-                        document.getElementById('hiddenInput_\(variable.builderId)').value = JSON.stringify(\(variable.builderId));
-                    }
-                    """
-                
-            case .fadeIn(let ref, let duration):
-                if let ref = ref {
-                    script += """
                         var element = document.getElementById('\(ref)');
                         if (element) {
                             if (element.style.opacity === '' || parseFloat(element.style.opacity) < 1) {
@@ -350,8 +337,8 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             }
                         }
                         """
-                } else {
-                    script += """
+            } else {
+                script += """
                         if (\(builderId).style.opacity === '' || parseFloat(\(builderId).style.opacity) < 1) {
                             \(builderId).style.opacity = 0;
                             \(builderId).style.display = 'block';
@@ -366,11 +353,11 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             tick();
                         }
                         """
-                }
-                
-            case .fadeOut(let ref, let duration):
-                if let ref = ref {
-                    script += """
+            }
+            
+        case .fadeOut(let ref, let duration):
+            if let ref = ref {
+                script += """
                         var element = document.getElementById('\(ref)');
                         if (element) {
                             element.style.opacity = 1;
@@ -387,8 +374,8 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             tick();
                         }
                         """
-                } else {
-                    script += """
+            } else {
+                script += """
                         \(builderId).style.opacity = 1;
                         var last = +new Date();
                         var tick = function() {
@@ -402,11 +389,11 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                         };
                         tick();
                         """
-                }
-                
-            case .fadeToggle(let ref, let duration):
-                if let ref = ref {
-                    script += """
+            }
+            
+        case .fadeToggle(let ref, let duration):
+            if let ref = ref {
+                script += """
                         var element = document.getElementById('\(ref)');
                         if (element) {
                             if (element.style.display === 'none' || getComputedStyle(element).display === 'none') {
@@ -436,8 +423,8 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             }
                         }
                         """
-                } else {
-                    script += """
+            } else {
+                script += """
                         if (\(builderId).style.display === 'none' || getComputedStyle(\(builderId)).display === 'none') {
                             \(builderId).style.opacity = 0;
                             \(builderId).style.display = 'block';
@@ -464,89 +451,115 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             tick();
                         }
                         """
-                }
-                
-                
-            case .addToArray(let variable, let value):
-                script += """
-                    if (\(variable.builderId).indexOf('\(value)') === -1) {
-                        \(variable.builderId).push('\(value)');
-                        document.getElementById('hiddenInput_\(variable.builderId)').value = JSON.stringify(\(variable.builderId));
+            }
+        case .addToArray(let variable, let value):
+            script += """
+                    // turn the variable from a JSON string into an temporary var array again
+                    if (typeof \(variable.builderId) === 'string') {
+                        var tempArray\(variable.builderId) = JSON.parse(\(variable.builderId));
+                        if (Array.isArray(tempArray\(variable.builderId))) {
+                            tempArray\(variable.builderId).push('\(value)');
+                            updateWebVariable\(variable.builderId)(tempArray\(variable.builderId));
+                        }
                     }
                     """
-                
-            case .removeFromArray(let variable, let value):
-                script += """
-                    var index = \(variable.builderId).indexOf('\(value)');
-                    if (index !== -1) {
-                        \(variable.builderId).splice(index, 1);
-                        document.getElementById('hiddenInput_\(variable.builderId)').value = JSON.stringify(\(variable.builderId));
+            
+        case .removeFromArray(let variable, let value):
+            script += """
+                    // turn the variable from a JSON string into an temporary var array again
+                    if (typeof \(variable.builderId) === 'string') {
+                        var tempArray\(variable.builderId) = JSON.parse(\(variable.builderId));
+                        if (Array.isArray(tempArray\(variable.builderId))) {
+                            var index = tempArray\(variable.builderId).indexOf('\(value)');
+                            if (index !== -1) {
+                                tempArray\(variable.builderId).splice(index, 1);
+                                updateWebVariable\(variable.builderId)(tempArray\(variable.builderId));
+                            }
+                        }
                     }
                     """
-                
-            case .scrollTo(let ref, let behavior, let alignment):
-                let refId = ref ?? builderId
-                script += """
+        case .toggleArray(let variable, let value):
+            
+            // if a value is there remove it, if it is not there add it
+            script += """
+                    // turn the variable from a JSON string into an temporary var array again
+                    if (typeof \(variable.builderId) === 'string') {
+                        var tempArray\(variable.builderId) = JSON.parse(\(variable.builderId));
+                        if (Array.isArray(tempArray\(variable.builderId))) {
+                            var index = tempArray\(variable.builderId).indexOf('\(value)');
+                            if (index !== -1) {
+                                tempArray\(variable.builderId).splice(index, 1);
+                            } else {
+                                tempArray\(variable.builderId).push('\(value)');
+                            }
+                            updateWebVariable\(variable.builderId)(tempArray\(variable.builderId));
+                        }
+                    }
+                    """
+            
+        case .scrollTo(let ref, let behavior, let alignment):
+            let refId = ref ?? builderId
+            script += """
                     var element = document.getElementById('\(refId)');
                     element.scrollIntoView({ behavior: '\(behavior.rawValue)', block: '\(alignment.rawValue)', inline: '\(alignment.rawValue)' });
                     """
-                
-            case .showOffCanvas(let ref):
-                script += """
+            
+        case .showOffCanvas(let ref):
+            script += """
             var offcanvasElement = document.getElementById('\(ref)');
             if (offcanvasElement) {
                 var offcanvas = new bootstrap.Offcanvas(offcanvasElement);
                 offcanvas.show();
             }
             """
-                
-            case .hideOffCanvas(let ref):
-                script += """
+            
+        case .hideOffCanvas(let ref):
+            script += """
             var offcanvasElement = document.getElementById('\(ref)');
             if (offcanvasElement) {
                 var offcanvas = new bootstrap.Offcanvas(offcanvasElement);
                 offcanvas.hide();
             }
             """
-                
-            case .carouselNext(let ref):
-                script += """
+            
+        case .carouselNext(let ref):
+            script += """
             var carouselElement = document.getElementById('\(ref)');
             if (carouselElement) {
                 var carousel = new bootstrap.Carousel(carouselElement);
                 carousel.next();
             }
             """
-                
-            case .carouselPrev(let ref):
-                script += """
+            
+        case .carouselPrev(let ref):
+            script += """
             var carouselElement = document.getElementById('\(ref)');
             if (carouselElement) {
                 var carousel = new bootstrap.Carousel(carouselElement);
                 carousel.prev();
             }
             """
-                
-            case .carouselTo(let ref, let index):
-                script += """
+            
+        case .carouselTo(let ref, let index):
+            script += """
             var carouselElement = document.getElementById('\(ref)');
             if (carouselElement) {
                 var carousel = new bootstrap.Carousel(carouselElement);
                 carousel.to(\(index));
             }
             """
-                
-            case .accordionToggle(let ref):
-                script += """
+            
+        case .accordionToggle(let ref):
+            script += """
             var accordionElement = document.getElementById('\(ref)');
             if (accordionElement) {
                 var accordion = new bootstrap.Collapse(accordionElement);
                 accordion.toggle();
             }
             """
-                
-            case .progressSet(let ref, let value):
-                script += """
+            
+        case .progressSet(let ref, let value):
+            script += """
             var progressElement = document.getElementById('\(ref)');
             if (progressElement) {
                 var progressBar = progressElement.querySelector('.progress-bar');
@@ -560,9 +573,9 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 }
             }
             """
-                
-            case .spinnerSet(let ref, let type, let size, let color, let label):
-                script += """
+            
+        case .spinnerSet(let ref, let type, let size, let color, let label):
+            script += """
             var spinnerElement = document.getElementById('\(ref)');
             if (spinnerElement) {
                 spinnerElement.classList.remove('spinner-border', 'spinner-grow', 'spinner-border-sm', 'spinner-border-lg', 'spinner-grow-sm', 'spinner-grow-lg');
@@ -577,66 +590,66 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 }
             }
             """
-                
-            case .handleResponse(_):
-                // This case is handled within the .post case to inject the response data
-                break
-            case .navigate(let url):
-                script += "window.location.href = '\(url)';\n"
-            case .load(ref: let ref, url: let url):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').src = '\(url)';\n"
-                } else {
-                    script += "\(builderId).src('\(url)');\n"
+            
+        case .handleResponse(_):
+            // This case is handled within the .post case to inject the response data
+            break
+        case .navigate(let url):
+            script += "window.location.href = '\(url)';\n"
+        case .load(ref: let ref, url: let url):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').src = '\(url)';\n"
+            } else {
+                script += "\(builderId).src('\(url)');\n"
+            }
+        case .script(let scrpt):
+            script += scrpt + "\n"
+        case .post(
+            url:             let url,
+            values:          let values,
+            onSuccessful:    let onSuccessful,
+            onFailed:        let onFailed,
+            onTimeout:       let onTimeout,
+            resultInto:      let resultInto
+        ):
+            let id = "\(UUID().uuidString.lowercased().replacingOccurrences(of: "-", with:"").prefix(4))"
+            
+            // --- build the POST payload ---
+            script += "var postData\(id) = {};\n"
+            for value in values ?? [] {
+                if let name = value.internalName {
+                    script += "postData\(id)['\(name)'] = \(value.builderId);\n"
                 }
-            case .script(let scrpt):
-                script += scrpt + "\n"
-            case .post(
-                url:             let url,
-                values:          let values,
-                onSuccessful:    let onSuccessful,
-                onFailed:        let onFailed,
-                onTimeout:       let onTimeout,
-                resultInto:      let resultInto
-            ):
-                let id = "\(UUID().uuidString.lowercased().replacingOccurrences(of: "-", with:"").prefix(4))"
-                
-                // --- build the POST payload ---
-                script += "var postData\(id) = {};\n"
-                for value in values ?? [] {
-                    if let name = value.internalName {
-                        script += "postData\(id)['\(name)'] = \(value.builderId);\n"
-                    }
-                }
-
-                // --- open and configure XHR ---
-                script += "var xhr\(id) = new XMLHttpRequest();\n"
-                script += "xhr\(id).open('POST', '\(url ?? "")', true);\n"
-                script += "xhr\(id).setRequestHeader('Content-Type', 'application/json');\n"
-                script += "xhr\(id).overrideMimeType('text/html');\n"
-                // this flag makes the browser accept and store Set-Cookie headers
-                script += "xhr\(id).withCredentials = true;\n\n"
-
-                // --- state‑change handler (200‑range, failures, cookies & redirect) ---
-                script += "xhr\(id).onreadystatechange = function() {\n"
-                script += "  if (xhr\(id).readyState !== 4) return;\n"
-                script += "  // 1) grab any cookies the server just set (HttpOnly ones won't appear here)\n"
-                script += "  var cookies = document.cookie;\n\n"
-                script += "  // 2) detect if the final URL is different (i.e. a redirect happened)\n"
-                script += "  var finalURL = xhr\(id).responseURL;\n"
-                script += "  if (finalURL && finalURL !== '\(url ?? "")') {\n"
-                script += "    window.location.href = finalURL;\n"
-                script += "    return;\n"
-                script += "  }\n\n"
-                script += "  // 3) success vs. failure based on status code\n"
-                script += "  if (xhr\(id).status >= 200 && xhr\(id).status < 300) {\n"
-                if let resultInto = resultInto {
-                    script += "    \(resultInto.builderId) = xhr\(id).responseText;\n"
-                }
-                if let onSuccessful = onSuccessful {
-                    for action in onSuccessful {
-                        if case .handleResponse(let scriptContent) = action {
-                            script += """
+            }
+            
+            // --- open and configure XHR ---
+            script += "var xhr\(id) = new XMLHttpRequest();\n"
+            script += "xhr\(id).open('POST', '\(url ?? "")', true);\n"
+            script += "xhr\(id).setRequestHeader('Content-Type', 'application/json');\n"
+            script += "xhr\(id).overrideMimeType('text/html');\n"
+            // this flag makes the browser accept and store Set-Cookie headers
+            script += "xhr\(id).withCredentials = true;\n\n"
+            
+            // --- state‑change handler (200‑range, failures, cookies & redirect) ---
+            script += "xhr\(id).onreadystatechange = function() {\n"
+            script += "  if (xhr\(id).readyState !== 4) return;\n"
+            script += "  // 1) grab any cookies the server just set (HttpOnly ones won't appear here)\n"
+            script += "  var cookies = document.cookie;\n\n"
+            script += "  // 2) detect if the final URL is different (i.e. a redirect happened)\n"
+            script += "  var finalURL = xhr\(id).responseURL;\n"
+            script += "  if (finalURL && finalURL !== '\(url ?? "")') {\n"
+            script += "    window.location.href = finalURL;\n"
+            script += "    return;\n"
+            script += "  }\n\n"
+            script += "  // 3) success vs. failure based on status code\n"
+            script += "  if (xhr\(id).status >= 200 && xhr\(id).status < 300) {\n"
+            if let resultInto = resultInto {
+                script += "    \(resultInto.builderId) = xhr\(id).responseText;\n"
+            }
+            if let onSuccessful = onSuccessful {
+                for action in onSuccessful {
+                    if case .handleResponse(let scriptContent) = action {
+                        script += """
                                 {
                                   var body    = xhr\(id).responseText;
                                   var status  = xhr\(id).status;
@@ -645,129 +658,129 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                                   \(scriptContent)
                                 }
                                 """
-                        } else {
-                            script += CompileActions([action], builderId: builderId)
-                        }
+                    } else {
+                        script += CompileActions([action], builderId: builderId)
                     }
                 }
-                script += "  } else {\n"
-                if let onFailed = onFailed {
-                    script += CompileActions(onFailed, builderId: builderId)
-                }
-                script += "  }\n"
+            }
+            script += "  } else {\n"
+            if let onFailed = onFailed {
+                script += CompileActions(onFailed, builderId: builderId)
+            }
+            script += "  }\n"
+            script += "};\n\n"
+            
+            // --- timeout handler (if any) ---
+            if let onTimeout = onTimeout {
+                // e.g. you could also do: xhr\(id).timeout = 10000; // 10s
+                script += "xhr\(id).ontimeout = function() {\n"
+                script += CompileActions(onTimeout, builderId: builderId)
                 script += "};\n\n"
-
-                // --- timeout handler (if any) ---
-                if let onTimeout = onTimeout {
-                    // e.g. you could also do: xhr\(id).timeout = 10000; // 10s
-                    script += "xhr\(id).ontimeout = function() {\n"
-                    script += CompileActions(onTimeout, builderId: builderId)
-                    script += "};\n\n"
-                }
-
-                // --- send it off ---
-                script += "xhr\(id).send(JSON.stringify(postData\(id)));\n"
-
-            case .addClass(let className):
-                script += "\(builderId).classList.add('\(className)');\n"
-            case .removeClass(let className):
-                script += "\(builderId).classList.remove('\(className)');\n"
-            case .hidden(ref: let ref, let value):
-                let action = value ? "add" : "remove"
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').classList.\(action)('visually-hidden');\n"
-                } else {
-                    script += "\(builderId).classList.\(action)('visually-hidden');\n"
-                }
-            case .if(let variable, let condition, let ifActions, let elseActions):
-                let ifScript = CompileActions(ifActions, builderId: builderId)
-                if let elseActions = elseActions {
-                    let elseScript = CompileActions(elseActions, builderId: builderId)
-                    script += "if (\(variable.builderId) \(condition.javascriptCondition)) {\n\(ifScript)\n} else {\n\(elseScript)\n}\n"
-                } else {
-                    script += "if (\(variable.builderId) \(condition.javascriptCondition)) {\n\(ifScript)\n}\n"
-                }
-            case .toggle(let value):
-                script += "\(value.builderId) = !\(value.builderId);\n"
-            case .foregroundColor(ref: let ref, let color):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.color = '\(color.rgba)';\n"
-                } else {
-                    script += "\(builderId).style.color = '\(color.rgba)';\n"
-                }
-            case .backgroundColor(ref: let ref, let color):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.backgroundColor = '\(color.rgba)';\n"
-                } else {
-                    script += "\(builderId).style.backgroundColor = '\(color.rgba)';\n"
-                }
-            case .underlineColor(ref: let ref, let color):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.textDecorationColor = '\(color.rgba)';\n"
-                } else {
-                    script += "\(builderId).style.textDecorationColor = '\(color.rgba)';\n"
-                }
-            case .underline(ref: let ref, let value):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.textDecoration = \(value ? "'underline'" : "'none'");\n"
-                } else {
-                    script += "\(builderId).style.textDecoration = \(value ? "'underline'" : "'none'");\n"
-                }
-            case .bold(ref: let ref, let value):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.fontWeight = \(value ? "'bold'" : "'normal'");\n"
-                } else {
-                    script += "\(builderId).style.fontWeight = \(value ? "'bold'" : "'normal'");\n"
-                }
-            case .italic(ref: let ref, let value):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.fontStyle = \(value ? "'italic'" : "'normal'");\n"
-                } else {
-                    script += "\(builderId).style.fontStyle = \(value ? "'italic'" : "'normal'");\n"
-                }
-            case .strikethrough(ref: let ref, let value):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.textDecoration = \(value ? "'line-through'" : "'none'");\n"
-                } else {
-                    script += "\(builderId).style.textDecoration = \(value ? "'line-through'" : "'none'");\n"
-                }
-            case .fontSize(ref: let ref, let size):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.fontSize = '\(size)px';\n"
-                } else {
-                    script += "\(builderId).style.fontSize = '\(size)px';\n"
-                }
-            case .fontFamily(ref: let ref, let name):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.fontFamily = '\(name)';\n"
-                } else {
-                    script += "\(builderId).style.fontFamily = '\(name)';\n"
-                }
-            case .fontWeight(ref: let ref, let weight):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.fontWeight = '\(weight)';\n"
-                } else {
-                    script += "\(builderId).style.fontWeight = '\(weight)';\n"
-                }
-            case .opacity(ref: let ref, let value):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').style.opacity = \(value);\n"
-                } else {
-                    script += "\(builderId).style.opacity = \(value);\n"
-                }
-            case .random(let actions):
-                let id = UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "")
-                script += "var randomIndex\(id) = Math.floor(Math.random() * \(actions.count));\n"
-                script += "var functions\(id) = [];\n"
-                for action in actions {
-                    script += "functions\(id).push(function() {\n"
-                    script += CompileActions([action], builderId: builderId)
-                    script += "});\n"
-                }
-                script += "functions\(id)[randomIndex\(id)]();\n"
-            case .showModal(ref: let ref, contentURL: let contentURL):
-                if let contentURL = contentURL {
-                    script += """
+            }
+            
+            // --- send it off ---
+            script += "xhr\(id).send(JSON.stringify(postData\(id)));\n"
+            
+        case .addClass(let className):
+            script += "\(builderId).classList.add('\(className)');\n"
+        case .removeClass(let className):
+            script += "\(builderId).classList.remove('\(className)');\n"
+        case .hidden(ref: let ref, let value):
+            let action = value ? "add" : "remove"
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').classList.\(action)('visually-hidden');\n"
+            } else {
+                script += "\(builderId).classList.\(action)('visually-hidden');\n"
+            }
+        case .if(let variable, let condition, let ifActions, let elseActions):
+            let ifScript = CompileActions(ifActions, builderId: builderId)
+            if let elseActions = elseActions {
+                let elseScript = CompileActions(elseActions, builderId: builderId)
+                script += "if (\(variable.builderId) \(condition.javascriptCondition)) {\n\(ifScript)\n} else {\n\(elseScript)\n}\n"
+            } else {
+                script += "if (\(variable.builderId) \(condition.javascriptCondition)) {\n\(ifScript)\n}\n"
+            }
+        case .toggle(let value):
+            script += "updateWebVariable\(value.builderId)(!\(value.builderId));\n"
+        case .foregroundColor(ref: let ref, let color):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.color = '\(color.rgba)';\n"
+            } else {
+                script += "\(builderId).style.color = '\(color.rgba)';\n"
+            }
+        case .backgroundColor(ref: let ref, let color):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.backgroundColor = '\(color.rgba)';\n"
+            } else {
+                script += "\(builderId).style.backgroundColor = '\(color.rgba)';\n"
+            }
+        case .underlineColor(ref: let ref, let color):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.textDecorationColor = '\(color.rgba)';\n"
+            } else {
+                script += "\(builderId).style.textDecorationColor = '\(color.rgba)';\n"
+            }
+        case .underline(ref: let ref, let value):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.textDecoration = \(value ? "'underline'" : "'none'");\n"
+            } else {
+                script += "\(builderId).style.textDecoration = \(value ? "'underline'" : "'none'");\n"
+            }
+        case .bold(ref: let ref, let value):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.fontWeight = \(value ? "'bold'" : "'normal'");\n"
+            } else {
+                script += "\(builderId).style.fontWeight = \(value ? "'bold'" : "'normal'");\n"
+            }
+        case .italic(ref: let ref, let value):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.fontStyle = \(value ? "'italic'" : "'normal'");\n"
+            } else {
+                script += "\(builderId).style.fontStyle = \(value ? "'italic'" : "'normal'");\n"
+            }
+        case .strikethrough(ref: let ref, let value):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.textDecoration = \(value ? "'line-through'" : "'none'");\n"
+            } else {
+                script += "\(builderId).style.textDecoration = \(value ? "'line-through'" : "'none'");\n"
+            }
+        case .fontSize(ref: let ref, let size):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.fontSize = '\(size)px';\n"
+            } else {
+                script += "\(builderId).style.fontSize = '\(size)px';\n"
+            }
+        case .fontFamily(ref: let ref, let name):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.fontFamily = '\(name)';\n"
+            } else {
+                script += "\(builderId).style.fontFamily = '\(name)';\n"
+            }
+        case .fontWeight(ref: let ref, let weight):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.fontWeight = '\(weight)';\n"
+            } else {
+                script += "\(builderId).style.fontWeight = '\(weight)';\n"
+            }
+        case .opacity(ref: let ref, let value):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').style.opacity = \(value);\n"
+            } else {
+                script += "\(builderId).style.opacity = \(value);\n"
+            }
+        case .random(let actions):
+            let id = UUID().uuidString.lowercased().replacingOccurrences(of: "-", with: "")
+            script += "var randomIndex\(id) = Math.floor(Math.random() * \(actions.count));\n"
+            script += "var functions\(id) = [];\n"
+            for action in actions {
+                script += "functions\(id).push(function() {\n"
+                script += CompileActions([action], builderId: builderId)
+                script += "});\n"
+            }
+            script += "functions\(id)[randomIndex\(id)]();\n"
+        case .showModal(ref: let ref, contentURL: let contentURL):
+            if let contentURL = contentURL {
+                script += """
                 fetch('\(contentURL)')
                     .then(response => response.text())
                     .then(data => {
@@ -775,75 +788,75 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                         \(ref.md5.trimmingCharacters(in: CharacterSet.decimalDigits))ModalDialog.show();
                     });
                 """
-                } else {
-                    script += """
+            } else {
+                script += """
                 if(\(ref.md5.trimmingCharacters(in: CharacterSet.decimalDigits))ModalDialog) {
                     \(ref.md5.trimmingCharacters(in: CharacterSet.decimalDigits))ModalDialog.show();
                 }
                 """
-                }
-            case .collapse(ref: let ref):
-                script += """
+            }
+        case .collapse(ref: let ref):
+            script += """
             var myCollapse = new bootstrap.Collapse('#\(ref)', {
                 hide: true
             });
             """
-            case .hideModal(ref: let ref):
-                script += """
+        case .hideModal(ref: let ref):
+            script += """
             if(\(ref.md5.trimmingCharacters(in: CharacterSet.decimalDigits))ModalDialog) {
                 \(ref.md5.trimmingCharacters(in: CharacterSet.decimalDigits))ModalDialog.hide();
             }
             """
-            case .popover(title: let title, content: let content):
-                script += """
+        case .popover(title: let title, content: let content):
+            script += """
             var popover = new bootstrap.Popover(\(builderId), {
                 title: '\(title)',
                 content: '\(content)'
             });
             popper.show();
             """
-            case .src(ref: let ref, url: let url):
-                if let ref = ref {
-                    script += "document.getElementById('\(ref)').src = '\(url)';\n"
-                } else {
-                    script += "\(builderId).src = '\(url)';\n"
-                }
-            case .setVariable(let variable, to: let to):
-                if let stringValue = to as? String {
-                    script += "\(variable.builderId) = '\(stringValue)';\n"
-                } else if let intValue = to as? Int {
-                    script += "\(variable.builderId) = \(intValue);\n"
-                } else if let doubleValue = to as? Double {
-                    script += "\(variable.builderId) = \(doubleValue);\n"
-                } else if let boolValue = to as? Bool {
-                    script += "\(variable.builderId) = \(boolValue ? "true" : "false");\n"
-                } else {
-                    script += "\(variable.builderId) = '\(to ?? "")';\n"
-                }
-            case .setInput(let inputName, to: let to):
-                if let stringValue = to as? String {
-                    script += "document.getElementsByName('\(inputName)')[0].value = '\(stringValue)';\n"
-                } else if let intValue = to as? Int {
-                    script += "document.getElementsByName('\(inputName)')[0].value = \(intValue);\n"
-                } else if let doubleValue = to as? Double {
-                    script += "document.getElementsByName('\(inputName)')[0].value = \(doubleValue);\n"
-                } else if let boolValue = to as? Bool {
-                    script += "document.getElementsByName('\(inputName)')[0].value = \(boolValue ? "true" : "false");\n"
-                } else {
-                    script += "document.getElementsByName('\(inputName)')[0].value = '\(to ?? "")';\n"
-                }
-            case .setVariableName(let variableName, to: let to):
-                if let stringValue = to as? String {
-                    script += "set\(variableName.md5)('\(stringValue)');\n"
-                } else if let intValue = to as? Int {
-                    script += "set\(variableName.md5)(\(intValue));\n"
-                } else if let doubleValue = to as? Double {
-                    script += "set\(variableName.md5)(\(doubleValue));\n"
-                } else if let boolValue = to as? Bool {
-                    script += "set\(variableName.md5)(\(boolValue ? "true" : "false"));\n"
-                } else {
-                    script += "set\(variableName.md5)('\(to ?? "")');\n"
-                }
+        case .src(ref: let ref, url: let url):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').src = '\(url)';\n"
+            } else {
+                script += "\(builderId).src = '\(url)';\n"
+            }
+        case .setVariable(let variable, to: let to):
+            if let stringValue = to as? String {
+                script += "updateWebVariable\(variable.builderId)('\(stringValue)');\n"
+            } else if let intValue = to as? Int {
+                script += "updateWebVariable\(variable.builderId)(\(intValue));\n"
+            } else if let doubleValue = to as? Double {
+                script += "updateWebVariable\(variable.builderId)(\(doubleValue));\n"
+            } else if let boolValue = to as? Bool {
+                script += "updateWebVariable\(variable.builderId)(\(boolValue ? "true" : "false"));\n"
+            } else {
+                script += "updateWebVariable\(variable.builderId)('\(to ?? "")');\n"
+            }
+        case .setInput(let inputName, to: let to):
+            if let stringValue = to as? String {
+                script += "document.getElementsByName('\(inputName)')[0].value = '\(stringValue)';\n"
+            } else if let intValue = to as? Int {
+                script += "document.getElementsByName('\(inputName)')[0].value = \(intValue);\n"
+            } else if let doubleValue = to as? Double {
+                script += "document.getElementsByName('\(inputName)')[0].value = \(doubleValue);\n"
+            } else if let boolValue = to as? Bool {
+                script += "document.getElementsByName('\(inputName)')[0].value = \(boolValue ? "true" : "false");\n"
+            } else {
+                script += "document.getElementsByName('\(inputName)')[0].value = '\(to ?? "")';\n"
+            }
+        case .setVariableName(let variableName, to: let to):
+            if let stringValue = to as? String {
+                script += "set\(variableName.md5)('\(stringValue)');\n"
+            } else if let intValue = to as? Int {
+                script += "set\(variableName.md5)(\(intValue));\n"
+            } else if let doubleValue = to as? Double {
+                script += "set\(variableName.md5)(\(doubleValue));\n"
+            } else if let boolValue = to as? Bool {
+                script += "set\(variableName.md5)(\(boolValue ? "true" : "false"));\n"
+            } else {
+                script += "set\(variableName.md5)('\(to ?? "")');\n"
+            }
         }
     }
     

@@ -66,35 +66,42 @@ public class WebVariableElement : WebCoreElement {
     }
     
     @discardableResult
-    public func onValueChange(_ actions: [WebAction]) -> Self {
+    internal func createWebVariableFunctions() -> Self {
+        // create the functions to get/set this variable
         addAttribute(.script("""
-var lastValue\(builderId) = \(builderId);
-var valueObserverInterval\(builderId) = setInterval(function() {
-  if (\(builderId) !== lastValue\(builderId)) {
-    \(compileActions(actions))
-    lastValue\(builderId) = \(builderId);
-  }
-}, 500);
-"""))
-        return self
+        
+        // array of callback functions that take a single value parameter
+        var callbacks\(builderId) = [];
+        
+        function addCallback\(builderId)(callback) {
+            // add a callback function to the array
+            callbacks\(builderId).push(callback);
+        }
+        
+        // create monitor and variable functions for updates and monitoring
+        function updateHiddenInput\(builderId)(value) {
+            document.getElementById('hiddenInput_\(builderId)').value = value;
+            \(builderId) = value;
+        }
+        
+        // var updates the hidden input as well as var. Then notifies a change to the bound objects
+        function updateWebVariable\(builderId)(value) {
+            // check to see if the value has actually changed before kicking off callbacks
+            \(builderId) = value;
+            updateHiddenInput\(builderId)(value);
+        
+            // loop through the callbacks and call them with the new value
+            for (var i = 0; i < callbacks\(builderId).length; i++) {
+                callbacks\(builderId)[i](value);
+            }
+        }
+        
+        """))
     }
     
 }
 
 public extension CoreWebEndpoint {
-    
-    fileprivate func addInternalVarMonitor(_ element: WebVariableElement) {
-        // observer to keep hidden field in sync
-        element.addAttribute(.script("""
-var lastValue\(element.builderId) = \(element.builderId);
-var valueInterval\(element.builderId) = setInterval(function() {
-  if (\(element.builderId) !== lastValue\(element.builderId)) {
-    document.getElementById('hiddenInput_\(element.builderId)').value = \(element.builderId);
-    lastValue\(element.builderId) = \(element.builderId);
-  }
-}, 500);
-"""))
-    }
     
     @discardableResult
     func WBool(_ value: Bool) -> WebVariableElement {
@@ -111,7 +118,7 @@ var valueInterval\(element.builderId) = setInterval(function() {
             element.setInitialValue(value)
             
             // observer to keep hidden field in sync
-            addInternalVarMonitor(element)
+            element.createWebVariableFunctions()
             
         }
         
@@ -134,7 +141,7 @@ var valueInterval\(element.builderId) = setInterval(function() {
             element.addAttribute(.value(String(value)))
             
             // observer to keep hidden field in sync
-            addInternalVarMonitor(element)
+            element.createWebVariableFunctions()
         }
         
         return object
@@ -155,7 +162,7 @@ var valueInterval\(element.builderId) = setInterval(function() {
             element.addAttribute(.value(String(value)))
             
             // observer to keep hidden field in sync
-            addInternalVarMonitor(element)
+            element.createWebVariableFunctions()
         }
         
         return object
@@ -177,7 +184,7 @@ var valueInterval\(element.builderId) = setInterval(function() {
             element.addAttribute(.value(value))
             
             // observer to keep hidden field in sync
-            addInternalVarMonitor(element)
+            element.createWebVariableFunctions()
         }
         
         return object
@@ -199,7 +206,7 @@ var valueInterval\(element.builderId) = setInterval(function() {
             element.addAttribute(.value("[\(values.map { "'\($0)'" }.joined(separator: ","))]"))
             
             // observer to keep hidden field in sync
-            addInternalVarMonitor(element)
+            element.createWebVariableFunctions()
         }
         
         return object

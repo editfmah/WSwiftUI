@@ -124,6 +124,7 @@ public enum WebCoreElementAttribute {
     case item(WebCoreElement)
     case variant(BootstrapVariant)
     case parent(Any)
+    case label(String)
 }
 
 internal enum WebCoreLayoutType {
@@ -169,6 +170,16 @@ public class WebCoreElement {
         attributes.removeAll(where: { if case .name(_) = $0 { return true } else { return false } })
         addAttribute(.name(name))
         return self
+    }
+    
+    @discardableResult
+    public func label(_ text: String)  -> Self {
+        
+        // remove existing name etries to stop duplication
+        attributes.removeAll(where: { if case .label(_) = $0 { return true } else { return false } })
+        addAttribute(.label(text))
+        return self
+        
     }
     
     @discardableResult
@@ -272,6 +283,31 @@ public class WebCoreElement {
     @discardableResult
     public func custom(_ custom: String)  -> Self {
         addAttribute(.custom(custom))
+        return self
+    }
+    
+    /// hides the button via class and attribute
+    @discardableResult
+    public func hidden(_ hidden: Bool = false) -> Self {
+        if hidden {
+            addAttribute(.class("visually-hidden"))
+        }
+        return self
+    }
+    
+    /// hides the button via class and attribute
+    @discardableResult
+    public func hidden(_ hidden: WebVariableElement) -> Self {
+        addAttribute(.script("""
+            function updateVariable\(builderId)(value) {
+                if (value) {
+                    \(builderId).classList.add("visually-hidden");
+                } else {
+                    \(builderId).classList.remove("visually-hidden");
+                }
+            }
+            addCallback\(hidden.builderId)(updateVariable\(builderId));
+            """))
         return self
     }
     
