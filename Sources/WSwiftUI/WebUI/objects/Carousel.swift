@@ -1,12 +1,12 @@
 import Foundation
 
 // 1) Subclasses for Carousel and its parts
-public class WebCarouselElement: WebCoreElement {}
-public class WebCarouselInnerElement: WebCoreElement {}
-public class WebCarouselItemElement: WebCoreElement {}
-public class WebCarouselIndicatorContainerElement: WebCoreElement {}
-public class WebCarouselIndicatorElement: WebCoreElement {}
-public class WebCarouselControlElement: WebCoreElement {}
+public class WebCarouselElement: CoreWebContent {}
+public class WebCarouselInnerElement: CoreWebContent {}
+public class WebCarouselItemElement: CoreWebContent {}
+public class WebCarouselIndicatorContainerElement: CoreWebContent {}
+public class WebCarouselIndicatorElement: CoreWebContent {}
+public class WebCarouselControlElement: CoreWebContent {}
 
 // 2) Fluent modifiers for Carousel container
 public extension WebCarouselElement {

@@ -56,8 +56,8 @@ public extension CoreWebEndpoint {
     
     // MARK: – Plain text
     @discardableResult
-    func Code(language: CodeLanguage, _ text: String) -> WebCoreElement {
-        var result: WebCoreElement?
+    func Code(language: CodeLanguage, _ text: String) -> CoreWebContent {
+        var result: CoreWebContent?
 
         WrapInLayoutContainer {
             result = create { element in

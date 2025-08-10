@@ -121,7 +121,7 @@ public enum WebCoreElementAttribute {
     case pair(String, String)
     case script(String)
     case innerHTML(String)
-    case item(WebCoreElement)
+    case item(CoreWebContent)
     case variant(BootstrapVariant)
     case parent(Any)
     case label(String)
@@ -132,7 +132,7 @@ internal enum WebCoreLayoutType {
     case horizontal
 }
 
-public class WebCoreElement {
+public class CoreWebContent {
     
     public var builderId: String = UUID()
         .uuidString
@@ -144,7 +144,7 @@ public class WebCoreElement {
     internal var attributes: [WebCoreElementAttribute] = []
     internal var layout: WebCoreLayoutType = .vertical
     public var elementName: String = "div"
-    public var subElements: [WebCoreElement] = []
+    public var subElements: [CoreWebContent] = []
 
     @discardableResult
     public func addAttribute(_ attribute: WebCoreElementAttribute) -> Self {
@@ -346,6 +346,7 @@ public protocol WebEndpoint {
     static func path(action: WebRequestActivity?, resource: UUID?, subResource: UUID?, version: UUID?, filter: [String: String]?, fragment: String?, returnUrl: String?) -> String
     var ephemeralData: [String : Any?] { get set }
     var authenticationIdentifier: String? { get set }
+    
 }
 
 public extension WebEndpoint {
@@ -422,7 +423,8 @@ public extension WebEndpoint {
     
 }
 
-public protocol WebContentEndpoint {
+public protocol WebContent {
+    
     // default calls for events
     func content() -> Any?
     func view() -> Any?
@@ -435,6 +437,7 @@ public protocol WebContentEndpoint {
     func authenticateSession(token: String, expiry: Date?)
     func deauthenticateSession()
     func acceptedRoles(for action: WebRequestActivity) -> [String]?
+    
 }
 
 public protocol WebApiEndpoint {
@@ -442,8 +445,8 @@ public protocol WebApiEndpoint {
     func acceptedRoles() -> [String]?
 }
 
-internal extension [WebCoreElement] {
-    mutating func push(_ element: WebCoreElement, _ closure: (() -> Void)) {
+internal extension [CoreWebContent] {
+    mutating func push(_ element: CoreWebContent, _ closure: (() -> Void)) {
         self.append(element)
         closure()
         self.removeAll(where: { $0.builderId == element.builderId })
@@ -485,8 +488,8 @@ open class CoreWebEndpoint {
     internal var title: String? = nil
     internal var head: [HeadItem] = []
     internal var builderScripts: [String] = []
-    internal var webRootElement: WebCoreElement? = nil
-    internal var stack: [WebCoreElement] = []
+    internal var webRootElement: CoreWebContent? = nil
+    internal var stack: [CoreWebContent] = []
     
     // default content methods
     open func content() -> Any? {
@@ -519,7 +522,7 @@ open class CoreWebEndpoint {
     
 }
 
-class Test : CoreWebEndpoint, WebEndpoint, WebContentEndpoint {
+class Test : CoreWebEndpoint, WebEndpoint, WebContent {
 
     public required init() {
         super.init()

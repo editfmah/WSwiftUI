@@ -1,7 +1,7 @@
 import Foundation
 
 // 1) Dedicated subclass for Alert
-public class WebAlertElement: WebCoreElement {}
+public class WebAlertElement: CoreWebContent {}
 
 
 // 3) Fluent methods for alert behaviors

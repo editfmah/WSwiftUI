@@ -8,7 +8,7 @@
 import Foundation
 
 // 1) Dedicated subclass for Badge
-public class WebBadgeElement: WebCoreElement {}
+public class WebBadgeElement: CoreWebContent {}
 
 // 2) Variant enum matching Bootstrap badge contextual colors
 public enum BootstrapVariant: String {

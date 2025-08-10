@@ -8,7 +8,7 @@
 import Foundation
 import WSwiftUI
 
-class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
+class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
     
     var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     
@@ -60,7 +60,7 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndex
                             }
                             HStack {
                                 VStack {
-                                    Picker(type: .segmented(.primary), binding: wVar) {
+                                    Picker(type: .segmented(.success), binding: wVar) {
                                         Text("Option 1").value("op1")
                                         Text("Option 2").value("op2")
                                         Text("Option 3").value("op3")

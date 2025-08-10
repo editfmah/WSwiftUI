@@ -8,7 +8,7 @@
 import Foundation
 
 // 1) Subclass for Footer element
-public class WebFooterElement: WebCoreElement {}
+public class WebFooterElement: CoreWebContent {}
 
 // 2) Fluent modifiers for Footer
 public extension WebFooterElement {

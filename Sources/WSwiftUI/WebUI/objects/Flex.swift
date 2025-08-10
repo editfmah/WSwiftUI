@@ -8,7 +8,7 @@
 import Foundation
 
 // 1) Subclass for Flex container
-public class WebFlexElement: WebCoreElement {}
+public class WebFlexElement: CoreWebContent {}
 
 // 2) Enums for Flex properties
 public enum FlexDirection: String {
@@ -107,7 +107,7 @@ public extension WebFlexElement {
 }
 
 // 4) Fluent modifier on items: align-self
-public extension WebCoreElement {
+public extension CoreWebContent {
     @discardableResult
     func alignSelf(_ align: FlexAlignSelf) -> Self {
         addAttribute(.class(align.rawValue))

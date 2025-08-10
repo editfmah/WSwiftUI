@@ -6,7 +6,7 @@
 //
 import Foundation
 
-public class WebImageElement: WebCoreElement {}
+public class WebImageElement: CoreWebContent {}
 
 public extension WebImageElement {
 

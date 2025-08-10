@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents an anchor (<a>) element within the DSL.
-public class WebLinkElement: WebCoreElement {}
+public class WebLinkElement: CoreWebContent {}
 
 public extension CoreWebEndpoint {
     /// Factory to create and register a WebLinkElement with the endpoint.
@@ -18,8 +18,8 @@ public extension CoreWebEndpoint {
     ///   - target: Optional target attribute (e.g., "_blank").
     /// - Returns: Configured WebLinkElement.
     @discardableResult
-    func Link(_ href: String, title: String, target: String? = nil) -> WebCoreElement {
-        var result: WebCoreElement?
+    func Link(_ href: String, title: String, target: String? = nil) -> CoreWebContent {
+        var result: CoreWebContent?
         
         WrapInLayoutContainer {
             result = create { el in

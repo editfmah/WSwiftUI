@@ -8,7 +8,7 @@
 public extension CoreWebEndpoint {
     
     @discardableResult
-    func webpage(_ closure: WebComposerClosure) -> WebCoreElement {
+    func webpage(_ closure: WebComposerClosure) -> CoreWebContent {
         let object = create { element in
             element.name("HTML")
             element.addAttribute(.pair("lang", "en"))

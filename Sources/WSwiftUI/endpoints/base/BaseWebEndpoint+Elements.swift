@@ -7,13 +7,13 @@
 
 public extension CoreWebEndpoint {
     
-    var parent: WebCoreElement? {
+    var parent: CoreWebContent? {
         get {
             return stack.last ?? webRootElement
         }
     }
     
-    internal func populateCreatedObject(_ element: WebCoreElement) {
+    internal func populateCreatedObject(_ element: CoreWebContent) {
         
         element.class(element.builderId)
         
@@ -31,11 +31,11 @@ public extension CoreWebEndpoint {
         
     }
     
-    func create(_ init: (_ element: WebCoreElement) -> Void) -> WebCoreElement {
+    func create(_ init: (_ element: CoreWebContent) -> Void) -> CoreWebContent {
         
         // work out if the parent 
         
-        let element = WebCoreElement()
+        let element = CoreWebContent()
         
         populateCreatedObject(element)
         `init`(element)

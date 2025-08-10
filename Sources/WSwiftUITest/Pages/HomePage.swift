@@ -8,7 +8,7 @@
 import Foundation
 import WSwiftUI
 
-class HomePage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndexable {
+class HomePage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
     
     var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     

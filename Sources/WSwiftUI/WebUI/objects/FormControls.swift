@@ -8,12 +8,12 @@
 import Foundation
 
 // 1) Subclasses for form elements
-public class WebFormGroupElement: WebCoreElement {}
-public class WebLabelElement: WebCoreElement {}
-public class WebInputElement: WebCoreElement {}
-public class WebTextAreaElement: WebCoreElement {}
-public class WebSelectElement: WebCoreElement {}
-public class WebOptionElement: WebCoreElement {}
+public class WebFormGroupElement: CoreWebContent {}
+public class WebLabelElement: CoreWebContent {}
+public class WebInputElement: CoreWebContent {}
+public class WebTextAreaElement: CoreWebContent {}
+public class WebSelectElement: CoreWebContent {}
+public class WebOptionElement: CoreWebContent {}
 
 // 2) Input types
 public enum InputType: String {

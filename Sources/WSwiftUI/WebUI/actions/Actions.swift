@@ -864,7 +864,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
 }
 
 
-extension WebCoreElement {
+extension CoreWebContent {
     
     internal func compileActions(_ actions: [WebAction]) -> String {
         return CompileActions(actions, builderId: builderId)

@@ -8,7 +8,7 @@
 import Foundation
 
 // 1) Dedicated subclass for Button
-public class WebButtonElement: WebCoreElement {}
+public class WebButtonElement: CoreWebContent {}
 
 public enum ButtonSize: String {
     case small = "btn-sm"

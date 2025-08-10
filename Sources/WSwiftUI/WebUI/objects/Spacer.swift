@@ -8,7 +8,7 @@
 import Foundation
 
 // 1) Dedicated subclass for Spacer element
-public class WebSpacerElement: WebCoreElement {}
+public class WebSpacerElement: CoreWebContent {}
 
 // 2) Fluent modifiers for Spacer
 public extension WebSpacerElement {

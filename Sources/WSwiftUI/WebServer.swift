@@ -64,7 +64,7 @@ public class WSwiftServer {
             
             // we've passed authentication, next check the permissions for the user vs the required permissions.
             
-            if let content = endpoint as? WebContentEndpoint {
+            if let content = endpoint as? WebContent {
                 if let permissions = content.acceptedRoles(for: action) {
                     if permissions.isEmpty == false {
                         // get the authenticated permissions/grants
@@ -117,7 +117,7 @@ public class WSwiftServer {
                         if e.authenticationRequired.contains(.authenticated) {
                             
                             // cast the object into a cotent or api
-                            if let content = e as? WebContentEndpoint {
+                            if let content = e as? WebContent {
                                 if let permissions = content.acceptedRoles(for: action) {
                                     if permissions.isEmpty == false {
                                         // get the authenticated permissions/grants
@@ -145,7 +145,7 @@ public class WSwiftServer {
                     
                     // it has to be content and it has to be indexable
                     guard let menuEndpoint = e as? MenuIndexable else { continue }
-                    guard e is WebContentEndpoint else { continue }
+                    guard e is WebContent else { continue }
                     
                     if primaries.contains(menuEndpoint.menuPrimary) == false {
                         
@@ -167,7 +167,7 @@ public class WSwiftServer {
                 for e in available {
                     
                     guard let menuEndpoint = e as? MenuIndexable else { continue }
-                    guard e is WebContentEndpoint else { continue }
+                    guard e is WebContent else { continue }
                     
                     // find the primary entry
                     if let primaryEntry = menus.first(where: { $0.title == menuEndpoint.menuPrimary }) {
@@ -225,9 +225,9 @@ public class WSwiftServer {
                 if let response = response as? HttpResponse {
                     // check to see if there was a new auth token set
                     return response
-                } else if response is WebCoreElement {
+                } else if response is CoreWebContent {
                     // build the html response from the response object
-                    if endpoint is WebContentEndpoint {
+                    if endpoint is WebContent {
                         let pageContent = endpoint.renderWebPage()
                         return HttpResponse.ok(.html(pageContent), endpoint.authenticationIdentifier ?? endpoint.newAuthenticationIdentifier)
                     }

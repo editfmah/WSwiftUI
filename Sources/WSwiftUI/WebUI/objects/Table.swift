@@ -6,11 +6,11 @@
 //
 
 // 1) Dedicated subclasses for table-related elements
-public class WebTableElement: WebCoreElement {}
-public class WebTableHeaderElement: WebCoreElement {}
-public class WebTableBodyElement: WebCoreElement {}
-public class WebTableRowElement: WebCoreElement {}
-public class WebTableCellElement: WebCoreElement {}
+public class WebTableElement: CoreWebContent {}
+public class WebTableHeaderElement: CoreWebContent {}
+public class WebTableBodyElement: CoreWebContent {}
+public class WebTableRowElement: CoreWebContent {}
+public class WebTableCellElement: CoreWebContent {}
 
 // 2) Fluent methods for table styling
 public extension WebTableElement {

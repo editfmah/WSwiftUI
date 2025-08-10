@@ -7,7 +7,7 @@
 
 import Foundation
 
-public extension WebCoreElement {
+public extension CoreWebContent {
     // MARK: – Click Event
 
     @discardableResult

@@ -10,7 +10,7 @@ import WSwiftUI
 
 extension CoreWebEndpoint {
     
-    func Template(_ content: WebComposerClosure) -> WebCoreElement {
+    func Template(_ content: WebComposerClosure) -> CoreWebContent {
         
         webpage {
             

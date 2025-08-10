@@ -1,14 +1,14 @@
 // Navigation.swift
 
 // MARK: – Navbar element types
-public class WebNavBarElement: WebCoreElement {}
-public class WebNavBarBrandElement: WebCoreElement {}
-public class WebNavBarTogglerElement: WebCoreElement {}
-public class WebNavBarCollapseElement: WebCoreElement {}
-public class WebNavBarItemElement: WebCoreElement {}
-public class WebNavBarDropdownElement: WebCoreElement {}
-public class WebNavBarDropdownMenuElement: WebCoreElement {}
-public class WebNavBarDropdownMenuItemElement: WebCoreElement {}
+public class WebNavBarElement: CoreWebContent {}
+public class WebNavBarBrandElement: CoreWebContent {}
+public class WebNavBarTogglerElement: CoreWebContent {}
+public class WebNavBarCollapseElement: CoreWebContent {}
+public class WebNavBarItemElement: CoreWebContent {}
+public class WebNavBarDropdownElement: CoreWebContent {}
+public class WebNavBarDropdownMenuElement: CoreWebContent {}
+public class WebNavBarDropdownMenuItemElement: CoreWebContent {}
 
 // MARK: – Enums
 public enum NavBarExpand: String { case sm, md, lg, xl, xxl }
@@ -41,7 +41,7 @@ public extension CoreWebEndpoint {
     stack.append(nav)
 
     // 2) <div class="container[-fluid]">
-    let container = WebCoreElement()
+    let container = CoreWebContent()
     populateCreatedObject(container)
     container.elementName = "div"
     container.addAttribute(.class(
@@ -83,7 +83,7 @@ public extension CoreWebEndpoint {
     stack.append(collapse)
 
     // 6) Nav‐list <ul>
-    let navList = WebCoreElement()
+    let navList = CoreWebContent()
     populateCreatedObject(navList)
     navList.elementName = "ul"
     navList.addAttribute(.class("navbar-nav ms-auto mb-2 mb-lg-0"))
@@ -114,7 +114,7 @@ public extension CoreWebEndpoint {
     li.elementName = "li"
     li.addAttribute(.class("nav-item"))
 
-    let a = WebCoreElement()
+    let a = CoreWebContent()
     populateCreatedObject(a)
     a.elementName = "a"
     var cls = "nav-link"
@@ -140,7 +140,7 @@ public extension CoreWebEndpoint {
     li.elementName = "li"
     li.addAttribute(.class("nav-item dropdown"))
 
-    let toggle = WebCoreElement()
+    let toggle = CoreWebContent()
     populateCreatedObject(toggle)
     toggle.elementName = "a"
     var cls = "nav-link dropdown-toggle"
@@ -177,7 +177,7 @@ public extension CoreWebEndpoint {
     populateCreatedObject(li)
     li.elementName = "li"
 
-    let a = WebCoreElement()
+    let a = CoreWebContent()
     populateCreatedObject(a)
     a.elementName = "a"
     var cls = "dropdown-item"
@@ -191,7 +191,7 @@ public extension CoreWebEndpoint {
 }
 
 // MARK: – Dropdown header element
-public class WebNavBarDropdownHeaderElement: WebCoreElement {}
+public class WebNavBarDropdownHeaderElement: CoreWebContent {}
 
 // MARK: – DSL
 public extension CoreWebEndpoint {

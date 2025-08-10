@@ -8,8 +8,8 @@
 import Foundation
 
 // 1) Dedicated subclasses for Accordion and AccordionItem
-public class WebAccordionElement: WebCoreElement {}
-public class WebAccordionItemElement: WebCoreElement {}
+public class WebAccordionElement: CoreWebContent {}
+public class WebAccordionItemElement: CoreWebContent {}
 
 // 2) Fluent methods for accordion-specific behaviors
 public extension WebAccordionElement {
