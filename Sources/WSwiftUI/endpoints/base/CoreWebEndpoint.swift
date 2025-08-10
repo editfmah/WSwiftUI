@@ -308,6 +308,28 @@ public class WebCoreElement {
             }
             addCallback\(hidden.builderId)(updateVariable\(builderId));
             """))
+        if hidden.asBool() {
+            addAttribute(.class("visually-hidden"))
+        }
+        return self
+    }
+    
+    /// hides the button via class and attribute
+    @discardableResult
+    public func disabled(_ disabled: WebVariableElement) -> Self {
+        addAttribute(.script("""
+            function updateVariable\(builderId)(value) {
+                if (value) {
+                    \(builderId).classList.add("disabled");
+                } else {
+                    \(builderId).classList.remove("disabled");
+                }
+            }
+            addCallback\(disabled.builderId)(updateVariable\(builderId));
+            """))
+        if disabled.asBool() {
+            addAttribute(.class("disabled"))
+        }
         return self
     }
     
@@ -418,6 +440,14 @@ public protocol WebContentEndpoint {
 public protocol WebApiEndpoint {
     func call() -> Any?
     func acceptedRoles() -> [String]?
+}
+
+internal extension [WebCoreElement] {
+    mutating func push(_ element: WebCoreElement, _ closure: (() -> Void)) {
+        self.append(element)
+        closure()
+        self.removeAll(where: { $0.builderId == element.builderId })
+    }
 }
 
 open class CoreWebEndpoint {

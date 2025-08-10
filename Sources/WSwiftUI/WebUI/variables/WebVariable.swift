@@ -96,6 +96,11 @@ public class WebVariableElement : WebCoreElement {
             }
         }
         
+        // on page load, set the initial value of the variable
+        document.addEventListener('DOMContentLoaded', function() {
+            updateWebVariable\(builderId)('\(asString())');
+        });
+        
         """))
     }
     

@@ -25,5 +25,6 @@ public protocol Theme {
     // Font Family
     var fontFamily: String { get }
     var headingFontFamily: String { get }
+    
 }
 

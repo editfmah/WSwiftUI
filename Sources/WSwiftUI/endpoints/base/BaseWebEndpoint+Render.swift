@@ -158,8 +158,6 @@ internal extension CoreWebEndpoint {
                 break;
             case .colorPicker:
                 break;
-            case .menu:
-                break;
             }
         }
         

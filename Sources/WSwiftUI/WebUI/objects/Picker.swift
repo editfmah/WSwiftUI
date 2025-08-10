@@ -7,18 +7,31 @@
 
 import Foundation
 
-public enum WebPickerType {
+public enum PickerAlignment {
+    case horizontal
+    case vertical
+}
+
+public enum WebPickerType : Equatable {
     case combo
-    case segmented
-    case radio
+    case segmented(BootstrapVariant)
+    case radio(PickerAlignment)
     case colorPicker
-    case menu
 }
 
 // 1) Dedicated subclasses for Picker (dropdown) and its parts
 public class WebPickerElement: WebCoreElement {
+    
     var value: WebVariableElement? = nil
     var type: WebPickerType = .combo
+    var variant: BootstrapVariant = .primary
+    
+    @discardableResult
+    func variant(_ variant: BootstrapVariant) -> Self {
+        self.variant = variant
+        return self
+    }
+    
 }
 
 // 7) DSL on BaseWebEndpoint
@@ -45,7 +58,7 @@ public extension CoreWebEndpoint {
     /// Main Picker container (dropdown)
     @discardableResult
     func Picker(type: WebPickerType,
-                binding: WebVariableElement? = nil,
+                binding: WebVariableElement,
                 _ content: WebComposerClosure)
     -> WebPickerElement {
         switch type {
@@ -55,23 +68,39 @@ public extension CoreWebEndpoint {
                     el.class("form-select")
                     el.value = binding
                     el.type = type
-                    if let binding {
-                        el.addAttribute(.custom("onChange=\"updateWebVariable\(binding.builderId)(this.value);\""))
-                    }
+                    el.addAttribute(.custom("onChange=\"updateWebVariable\(binding.builderId)(this.value);\""))
+                    // register callbacks for updates to the bound variable
+                    el.script("""
+                        function updateVariable\(el.builderId)(value) {
+                                \(el.builderId).value = value;
+                        }
+                        addCallback\(binding.builderId)(updateVariable\(el.builderId));
+                    """)
                 }
                 stack.append(picker)
                 // items go here
                 content()
                 // pop menu and picker
                 stack.removeAll(where: { $0.builderId == picker.builderId })
-                if let binding {
-                    picker.addAttribute(.script("\(binding.builderId) = \(picker.builderId).value;"))
-                }
+                picker.addAttribute(.script("\(binding.builderId) = \(picker.builderId).value;"))
                 // if there is a binding, generate javascript to read the current value from the binding and select the current
                 
                 return picker
             case .segmented:
-                break;
+                let picker = createPicker { el in
+                    el.elementName = "div"
+                    el.class("btn-group")
+                    el.class("btn-group-toggle")
+                    el.addAttribute(.pair("role", "group"))
+                    el.value = binding
+                    el.type = type
+                }
+                stack.append(picker)
+                // items go here
+                content()
+                // pop menu and picker
+                stack.removeAll(where: { $0.builderId == picker.builderId })
+                return picker
             case .radio:
                 // basically, we do nothing as a radio is all controlled from it's parents id
                 let picker = createPicker { el in
@@ -86,8 +115,6 @@ public extension CoreWebEndpoint {
                 stack.removeAll(where: { $0.builderId == picker.builderId })
                 return picker
             case .colorPicker:
-                break;
-            case .menu:
                 break;
         }
         

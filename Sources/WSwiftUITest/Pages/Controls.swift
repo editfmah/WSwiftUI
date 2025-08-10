@@ -32,7 +32,7 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndex
                     HStack {
                         VStack {
                             //Text("Combo:")
-                            let wVar = WString("zzz").name("web_var_1")
+                            let wVar = WString("op2").name("web_var_1")
                             let hide = WBool(false)
                             TextField(binding: wVar).type(.text).name("text_input_1").placeholder("placehodler text").label("Text Input")
                             Picker(type: .combo, binding: wVar) {
@@ -48,6 +48,25 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContentEndpoint, MenuIndex
                             Button("Hide Combo").variant(.info).onClick([
                                 .setVariable(hide, to: true)
                             ])
+                            Toggle(value: hide).label("Hide the combo!")
+                            HStack {
+                                VStack {
+                                    Picker(type: .radio(.horizontal), binding: wVar) {
+                                        Text("Option 1").value("op1")
+                                        Text("Option 2").value("op2")
+                                        Text("Option 3").value("op3")
+                                    }
+                                }
+                            }
+                            HStack {
+                                VStack {
+                                    Picker(type: .segmented(.primary), binding: wVar) {
+                                        Text("Option 1").value("op1")
+                                        Text("Option 2").value("op2")
+                                        Text("Option 3").value("op3")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
