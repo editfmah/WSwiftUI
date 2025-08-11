@@ -58,9 +58,8 @@ public class WebVariableElement : CoreWebContent {
     }
     
     @discardableResult
-    public func setName(_ name: String) -> Self {
-        // now find the hidden input by id
-        addAttribute(.script("document.getElementById('hiddenInput_\(builderId)').name = '\(name)';"))
+    override public func name(_ name: String) -> Self {
+        addAttribute(.name(name))
         internalName = name
         return self
     }
@@ -104,6 +103,219 @@ public class WebVariableElement : CoreWebContent {
         """))
     }
     
+    @discardableResult
+    public func liveUpdate(
+        url: String,
+        reference: String,
+        actions: [WebVariableLiveUpdateActions] = [.read],
+        related: [WebVariableElement]? = nil,
+        onRequest: [WebAction]? = nil,
+        onResponse: [WebAction]? = nil
+    ) -> Self {
+        return liveUpdate(url: url,
+                          reference: reference,
+                          actions: actions,
+                          related: related,
+                          onRequest: onRequest,
+                          onResponse: onResponse,
+                          pollEverySeconds: nil)
+    }
+
+    @discardableResult
+    public func liveUpdate(
+        url: String,
+        reference: String,
+        actions: [WebVariableLiveUpdateActions] = [.read],
+        related: [WebVariableElement]? = nil,
+        onRequest: [WebAction]? = nil,
+        onResponse: [WebAction]? = nil,
+        pollEverySeconds: Int?
+    ) -> Self {
+
+        let nameSelf = internalName ?? builderId
+
+        func typeString(_ t: WebVariableType) -> String {
+            switch t {
+            case .bool:   return "bool"
+            case .int:    return "int"
+            case .double: return "double"
+            case .string: return "string"
+            case .array:  return "array"
+            case .object: return "object"
+            }
+        }
+
+        // Client-side descriptors (not sent)
+        let selfEntry = "{name:'\(nameSelf)',id:'\(builderId)',type:'\(typeString(variableType))'}"
+        let relatedEntries = (related ?? []).map {
+            let n = $0.internalName ?? $0.builderId
+            return "{name:'\(n)',id:'\($0.builderId)',type:'\(typeString($0.variableType))'}"
+        }.joined(separator: ",")
+
+        let varsArrayJS = "[\(selfEntry)\(relatedEntries.isEmpty ? "" : ",\(relatedEntries)")]"
+
+        // internalName -> builderId for applying server responses
+        let nameToIdMapJS: String = {
+            var pairs = ["'\(nameSelf)':'\(builderId)'"]
+            if let r = related {
+                pairs.append(contentsOf: r.map { "'\($0.internalName ?? $0.builderId)':'\($0.builderId)'" })
+            }
+            return "{\(pairs.joined(separator: ","))}"
+        }()
+
+        let allowRead  = actions.contains(.read)
+        let allowWrite = actions.contains(.write)
+
+        let onRequestJS  = onRequest.map { CompileActions($0, builderId: builderId) } ?? ""
+        let onResponseJS = onResponse.map { CompileActions($0, builderId: builderId) } ?? ""
+        let pollJS       = pollEverySeconds.map { String(max(0, $0)) } ?? "0"
+
+        addAttribute(.script("""
+        (function(){
+            var vars_\(builderId) = \(varsArrayJS);
+            var nameToId_\(builderId) = \(nameToIdMapJS);
+
+            // Prevent feedback loops when applying server responses
+            var isApplying_\(builderId) = false;
+
+            // Polling (fixed interval, seconds)
+            var pollEverySec_\(builderId) = \(pollJS);
+            var pollTimer_\(builderId) = null;
+            var readInFlight_\(builderId) = false;
+
+            // Skip the very first callback each var fires (from DOMContentLoaded init)
+            var skippedFirst_\(builderId) = {};
+            for (var i=0;i<vars_\(builderId).length;i++){ skippedFirst_\(builderId)[vars_\(builderId)[i].id] = false; }
+
+            function collectData_\(builderId)(){
+                var d = {};
+                for (var i=0; i<vars_\(builderId).length; i++){
+                    var v = vars_\(builderId)[i];
+                    try { d[v.name] = window[v.id]; } catch(_){ d[v.name] = undefined; }
+                }
+                return d;
+            }
+
+            function buildPayload_\(builderId)(doRead, doWrite){
+                var payload = {
+                    reference: "\(reference)",
+                    read: !!doRead,
+                    write: !!doWrite,
+                    data: {}
+                };
+                var curr = collectData_\(builderId)();
+                for (var n in curr) if (Object.prototype.hasOwnProperty.call(curr, n)) {
+                    payload.data[n] = curr[n]; // raw JS var values
+                }
+                return payload;
+            }
+
+            function doFetch_\(builderId)(payload){
+                return fetch("\(url)", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: "same-origin",
+                    body: JSON.stringify(payload)
+                }).then(function(r){
+                    if(!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                });
+            }
+
+            function applyResponse_\(builderId)(resp){
+                if (!resp || !resp.data) return;
+                isApplying_\(builderId) = true;
+                try {
+                    for (var key in resp.data) if (Object.prototype.hasOwnProperty.call(resp.data, key)) {
+                        var targetId = nameToId_\(builderId)[key];
+                        if (!targetId) continue;
+                        var val = resp.data[key];
+                        // Use generated updater to keep hidden input + callbacks in sync
+                        var fn = window['updateWebVariable' + targetId];
+                        if (typeof fn === 'function') {
+                            fn(val);
+                        } else {
+                            // Fallback (should rarely be needed)
+                            try { window[targetId] = val; } catch(_){}
+                            var hidden = document.getElementById('hiddenInput_' + targetId);
+                            if (hidden) {
+                                hidden.value = (Array.isArray(val) || (val && typeof val === 'object'))
+                                    ? JSON.stringify(val)
+                                    : String(val ?? '');
+                            }
+                        }
+                    }
+                } finally {
+                    isApplying_\(builderId) = false;
+                }
+            }
+
+            function send_\(builderId)(doRead, doWrite){
+                if (!doRead && !doWrite) return Promise.resolve();
+                \(onRequestJS)
+                return doFetch_\(builderId)(buildPayload_\(builderId)(doRead, doWrite))
+                    .then(applyResponse_\(builderId))
+                    .catch(function(e){ console && console.warn && console.warn(e); })
+                    .finally(function(){ \(onResponseJS) });
+            }
+
+            // Register callbacks: on any callback (after first), push WRITE (no READ)
+            (function(){
+                for (var i=0; i<vars_\(builderId).length; i++){
+                    (function(v){
+                        var addCb = window['addCallback' + v.id];
+                        if (typeof addCb === 'function') {
+                            addCb(function(_newVal){
+                                if (!\(allowWrite ? "true" : "false")) return;
+                                if (isApplying_\(builderId)) return; // ignore our own updates from server
+                                if (skippedFirst_\(builderId)[v.id] === false) {
+                                    // first callback for this var is the DOMContentLoaded init — ignore it
+                                    skippedFirst_\(builderId)[v.id] = true;
+                                    return;
+                                }
+                                // Write current values for all involved vars; no read
+                                send_\(builderId)(false, true);
+                            });
+                        }
+                    })(vars_\(builderId)[i]);
+                }
+            })();
+
+            // Polling reads at fixed interval; no initial read
+            function startPolling_\(builderId)(){
+                if (!\(allowRead ? "true" : "false")) return;
+                if (!pollEverySec_\(builderId) || pollEverySec_\(builderId) <= 0) return;
+                if (pollTimer_\(builderId)) { try { clearInterval(pollTimer_\(builderId)); } catch(_){ } }
+                pollTimer_\(builderId) = setInterval(function(){
+                    if (readInFlight_\(builderId)) return;
+                    readInFlight_\(builderId) = true;
+                    send_\(builderId)(true, false)
+                        .finally(function(){ readInFlight_\(builderId) = false; });
+                }, pollEverySec_\(builderId) * 1000);
+            }
+
+            document.addEventListener('DOMContentLoaded', function(){
+                // DO NOT write initially; just begin polling if configured.
+                startPolling_\(builderId)();
+            });
+
+            // Manual hooks if needed
+            window['liveWrite_\(builderId)'] = function(){ return send_\(builderId)(false, true); };
+            window['liveRead_\(builderId)']  = function(){ return send_\(builderId)(\(allowRead ? "true" : "false"), false); };
+            window['liveSync_\(builderId)']  = function(){ return send_\(builderId)(\(allowRead ? "true" : "false"), \(allowWrite ? "true" : "false")); };
+        })();
+        """))
+
+        return self
+    }
+
+
+    
+}
+
+public enum WebVariableLiveUpdateActions {
+    case write
+    case read
 }
 
 public extension CoreWebEndpoint {

@@ -12,6 +12,7 @@ let server = WSwiftServer(port: 4242, bindAddressv4: "0.0.0.0")
 server.register(HomePage())
 server.register(PurposePage())
 server.register(ControlsPage())
+server.register(ControlsAPI())
 
 server.onAcceptedRequest { endpoint in
     

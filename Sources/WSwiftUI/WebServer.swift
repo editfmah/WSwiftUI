@@ -204,21 +204,30 @@ public class WSwiftServer {
                 
                 var response: Any? = nil
                 
-                switch action {
-                    case .Content:
-                        response = endpoint.content()
-                    case .View:
-                        response = endpoint.view()
-                    case .Modify:
-                        response = endpoint.modify()
-                    case .New:
-                        response = endpoint.new()
-                    case .Save:
-                        response = endpoint.save()
-                    case .Delete:
-                        response = endpoint.delete()
-                    case .Raw:
-                        response = endpoint.raw()
+                if let endpoint = endpoint as? WebApiEndpoint {
+                    // execute the api endpoint
+                    response = endpoint.call()
+                } else if let endpoint = endpoint as? WebContent {
+                    // execute the content endpoint
+                    switch action {
+                        case .Content:
+                            response = endpoint.content()
+                        case .View:
+                            response = endpoint.view()
+                        case .Modify:
+                            response = endpoint.modify()
+                        case .New:
+                            response = endpoint.new()
+                        case .Save:
+                            response = endpoint.save()
+                        case .Delete:
+                            response = endpoint.delete()
+                        case .Raw:
+                            response = endpoint.raw()
+                    }
+                } else {
+                    // we don't know what to do with this endpoint, so return not found
+                    return .notFound
                 }
                 
                 // if we have a response, return it

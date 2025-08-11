@@ -10,6 +10,7 @@ import Foundation
 public class WebData {
     
     private var combined: [String: String] = [:]
+    private var webVariableMessage: WebVariableMessage?
 
     public struct FilePart {
         public let fieldName: String
@@ -48,9 +49,14 @@ public class WebData {
     }
 
     private func consumeJSON(_ data: Data) {
+        
         guard let obj = try? JSONSerialization.jsonObject(with: data),
               let dict = obj as? [String: Any]
         else { return }
+        
+        if let wVar = try? JSONDecoder().decode(WebVariableMessage.self, from: data) {
+            webVariableMessage = wVar
+        }
         
         func flatten(_ dict: [String: Any], prefix: String? = nil) {
             for (key, value) in dict {
@@ -168,6 +174,9 @@ public class WebData {
     }
 
     // MARK: – Accessors
+    public func webVariabileMessage() -> WebVariableMessage? {
+        return webVariableMessage
+    }
     
     public func exists(_ key: String) -> Bool {
         return combined[key] != nil
