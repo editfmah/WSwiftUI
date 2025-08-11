@@ -32,7 +32,7 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
                     HStack {
                         VStack {
                             //Text("Combo:")
-                            let hide = WBool(false)
+                            let hide = WBool(false).name("web_var_combo_hide")
                             let wVar = WString("op2").name("web_live_var")
                                 .liveUpdate(
                                     url: "/api/controls",
@@ -40,6 +40,14 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
                                     actions: [.read,.write],
                                     related: [hide]
                                 )
+                            let wVar2 = WString("").name("server_time")
+                                .liveUpdate(
+                                    url: "/api/controls",
+                                    reference: "controls-test",
+                                    actions: [.read],
+                                    pollEverySeconds: 1
+                                )
+                            TextField(binding: wVar2).type(.text).name("text_input_2").label("Server Time").disabled()
                             TextField(binding: wVar).type(.text).name("text_input_1").placeholder("placehodler text").label("Text Input")
                             Picker(type: .combo, binding: wVar) {
                                 Text("Option 1").value("op1")

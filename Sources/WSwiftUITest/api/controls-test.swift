@@ -13,7 +13,7 @@ class ControlsAPI : CoreWebEndpoint, WebEndpoint, WebApiEndpoint {
     func call() -> Any? {
         // This is a test API endpoint that returns a simple message
         if let request = data.webVariabileMessage() {
-            request.data["c58846449658"] = .bool(true)
+            request.data["server_time"] = .string("\(Date())")
             return request
         }
         return HttpResponse.internalServerError
