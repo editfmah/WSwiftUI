@@ -8,10 +8,10 @@
 import Foundation
 
 /// The “hero” banner at the top of a page
-public class WebJumbotronElement: CoreWebContent {}
-public class WebJumbotronImageElement: CoreWebContent {}
-public class WebJumbotronTitleElement: CoreWebContent {}
-public class WebJumbotronSubtitleElement: CoreWebContent {}
+public class WebJumbotronElement: WebElement {}
+public class WebJumbotronImageElement: WebElement {}
+public class WebJumbotronTitleElement: WebElement {}
+public class WebJumbotronSubtitleElement: WebElement {}
 
 public extension CoreWebEndpoint {
   /// Creates a full-width jumbotron banner.
@@ -39,7 +39,7 @@ public extension CoreWebEndpoint {
     stack.append(jumbo)
 
     // 2) inner container
-    let container = CoreWebContent()
+    let container = WebElement()
     populateCreatedObject(container)
     container.elementName = "div"
     container.addAttribute(.class(fluid ? "container-fluid" : "container"))

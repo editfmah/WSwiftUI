@@ -11,9 +11,9 @@ public extension CoreWebEndpoint {
     
     // MARK: – WBool binding
     @discardableResult
-    func Toggle(value: WebVariableElement) -> CoreWebContent {
+    func Toggle(value: WebVariableElement) -> WebElement {
         
-        var result: CoreWebContent?
+        var result: WebElement?
         
         /*
          

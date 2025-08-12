@@ -8,7 +8,7 @@
 public extension CoreWebEndpoint {
     
     @discardableResult
-    func VStack(_ closure: WebComposerClosure) -> CoreWebContent {
+    func VStack(_ closure: WebComposerClosure) -> WebElement {
         let object = create { element in
             element.class("col")
             element.layout = .vertical

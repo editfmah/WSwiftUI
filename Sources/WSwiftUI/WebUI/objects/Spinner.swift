@@ -18,7 +18,7 @@ public enum SpinnerType: String {
 
 
 // 2) Default-implement the four spinner methods
-public class WebSpinnerElement : CoreWebContent {
+public class WebSpinnerElement : WebElement {
     @discardableResult
     public func size(_ size: SpinnerSize) -> Self {
         addAttribute(.class(size.rawValue))

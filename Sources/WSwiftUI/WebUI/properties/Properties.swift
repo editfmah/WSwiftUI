@@ -630,7 +630,7 @@ public enum WebTranslateDirection: String {
 }
 
 
-public extension CoreWebContent {
+public extension WebElement {
     
     // MARK: – Sizing
     

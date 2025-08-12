@@ -1,7 +1,7 @@
 // MARK: – Breadcrumb element types
-public class WebBreadcrumbElement: CoreWebContent {}
-public class WebBreadcrumbListElement: CoreWebContent {}
-public class WebBreadcrumbItemElement: CoreWebContent {}
+public class WebBreadcrumbElement: WebElement {}
+public class WebBreadcrumbListElement: WebElement {}
+public class WebBreadcrumbItemElement: WebElement {}
 
 public extension CoreWebEndpoint {
   
@@ -52,7 +52,7 @@ public extension CoreWebEndpoint {
     stack.append(li)
     
     // <a>
-    let a = CoreWebContent()
+    let a = WebElement()
     populateCreatedObject(a)
     a.elementName = "a"
     a.addAttribute(.pair("href", url))

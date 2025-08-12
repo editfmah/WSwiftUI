@@ -120,14 +120,14 @@ public extension CoreWebEndpoint {
     
     // MARK: – Plain text
     @discardableResult
-    func Text(_ text: String) -> CoreWebContent {
-        var result: CoreWebContent?
+    func Text(_ text: String) -> WebElement {
+        var result: WebElement?
         
         // if we’re inside a picker, branch on its type…
         if let parent = parent {
             if let parent = parent as? WebPickerElement, parent.type == .combo {
                 
-                result = CoreWebContent()
+                result = WebElement()
                 result?.title(text)
                 parent.addAttribute(.item(result!))
                 
@@ -269,9 +269,9 @@ public extension CoreWebEndpoint {
     
     // MARK: – WString binding
     @discardableResult
-    func Text(_ binding: WebVariableElement) -> CoreWebContent {
+    func Text(_ binding: WebVariableElement) -> WebElement {
         
-        var result: CoreWebContent?
+        var result: WebElement?
         
         WrapInLayoutContainer {
             result = create { element in

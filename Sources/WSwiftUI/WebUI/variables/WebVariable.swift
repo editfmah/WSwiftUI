@@ -29,7 +29,7 @@ internal enum WebVariableType {
     case object
 }
 
-public class WebVariableElement : CoreWebContent {
+public class WebVariableElement : WebElement {
     
     internal var variableType: WebVariableType = .bool
     internal var internalName: String? = nil

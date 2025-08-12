@@ -20,7 +20,7 @@ public enum WebPickerType : Equatable {
 }
 
 // 1) Dedicated subclasses for Picker (dropdown) and its parts
-public class WebPickerElement: CoreWebContent {
+public class WebPickerElement: WebElement {
     
     var value: WebVariableElement? = nil
     var type: WebPickerType = .combo

@@ -8,9 +8,9 @@
 import Foundation
 
 // 1) Dedicated subclasses for pagination container, items, and links
-public class WebPaginationElement: CoreWebContent {}
-public class WebPaginationItemElement: CoreWebContent {}
-public class WebPaginationLinkElement: CoreWebContent {}
+public class WebPaginationElement: WebElement {}
+public class WebPaginationItemElement: WebElement {}
+public class WebPaginationLinkElement: WebElement {}
 
 // 2) Enums for size and alignment
 public enum PaginationSize: String {

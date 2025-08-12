@@ -1,12 +1,12 @@
 import Foundation
 
 // 1) Dedicated subclasses for Offcanvas and its parts
-public class WebOffCanvasElement: CoreWebContent {}
-public class WebOffCanvasHeaderElement: CoreWebContent {}
-public class WebOffCanvasTitleElement: CoreWebContent {}
-public class WebOffCanvasCloseButtonElement: CoreWebContent {}
-public class WebOffCanvasBodyElement: CoreWebContent {}
-public class WebOffCanvasFooterElement: CoreWebContent {}
+public class WebOffCanvasElement: WebElement {}
+public class WebOffCanvasHeaderElement: WebElement {}
+public class WebOffCanvasTitleElement: WebElement {}
+public class WebOffCanvasCloseButtonElement: WebElement {}
+public class WebOffCanvasBodyElement: WebElement {}
+public class WebOffCanvasFooterElement: WebElement {}
 
 // 2) Placement enum
 public enum OffCanvasPlacement: String {

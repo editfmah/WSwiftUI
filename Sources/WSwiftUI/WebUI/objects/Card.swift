@@ -8,11 +8,11 @@
 import Foundation
 
 // 1) Dedicated subclasses for Card and its sub-elements
-public class WebCardElement: CoreWebContent {}
-public class WebCardHeaderElement: CoreWebContent {}
-public class WebCardBodyElement: CoreWebContent {}
-public class WebCardFooterElement: CoreWebContent {}
-public class WebCardImageElement: CoreWebContent {}
+public class WebCardElement: WebElement {}
+public class WebCardHeaderElement: WebElement {}
+public class WebCardBodyElement: WebElement {}
+public class WebCardFooterElement: WebElement {}
+public class WebCardImageElement: WebElement {}
 
 // 2) Fluent modifiers for Card container
 public extension WebCardElement {

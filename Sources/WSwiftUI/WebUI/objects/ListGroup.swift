@@ -8,8 +8,8 @@
 import Foundation
 
 // 1) Dedicated subclasses for ListGroup container and items
-public class WebListGroupElement: CoreWebContent {}
-public class WebListGroupItemElement: CoreWebContent {}
+public class WebListGroupElement: WebElement {}
+public class WebListGroupItemElement: WebElement {}
 
 // 3) Fluent modifiers for ListGroup container
 public extension WebListGroupElement {

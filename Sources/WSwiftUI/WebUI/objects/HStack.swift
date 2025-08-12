@@ -8,7 +8,7 @@
 public extension CoreWebEndpoint {
     
     @discardableResult
-    func HStack(_ closure: WebComposerClosure) -> CoreWebContent {
+    func HStack(_ closure: WebComposerClosure) -> WebElement {
         let object = create { element in
             element.class("row")
             element.layout = .horizontal

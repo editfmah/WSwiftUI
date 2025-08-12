@@ -234,7 +234,7 @@ public class WSwiftServer {
                 if let response = response as? HttpResponse {
                     // check to see if there was a new auth token set
                     return response
-                } else if response is CoreWebContent {
+                } else if response is WebElement {
                     // build the html response from the response object
                     if endpoint is WebContent {
                         let pageContent = endpoint.renderWebPage()

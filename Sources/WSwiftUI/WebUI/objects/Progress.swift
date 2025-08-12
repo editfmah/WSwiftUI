@@ -8,8 +8,8 @@
 import Foundation
 
 // 1) Dedicated subclasses for Progress container and bars
-public class WebProgressElement: CoreWebContent {}
-public class WebProgressBarElement: CoreWebContent {}
+public class WebProgressElement: WebElement {}
+public class WebProgressBarElement: WebElement {}
 
 
 // 3) Fluent modifiers for Progress container

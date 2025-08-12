@@ -8,14 +8,14 @@
 import Foundation
 
 // 1) Dedicated subclasses for Modal and its parts
-public class WebModalElement: CoreWebContent {}
-public class WebModalDialogElement: CoreWebContent {}
-public class WebModalContentElement: CoreWebContent {}
-public class WebModalHeaderElement: CoreWebContent {}
-public class WebModalTitleElement: CoreWebContent {}
-public class WebModalCloseButtonElement: CoreWebContent {}
-public class WebModalBodyElement: CoreWebContent {}
-public class WebModalFooterElement: CoreWebContent {}
+public class WebModalElement: WebElement {}
+public class WebModalDialogElement: WebElement {}
+public class WebModalContentElement: WebElement {}
+public class WebModalHeaderElement: WebElement {}
+public class WebModalTitleElement: WebElement {}
+public class WebModalCloseButtonElement: WebElement {}
+public class WebModalBodyElement: WebElement {}
+public class WebModalFooterElement: WebElement {}
 
 // 2) Option enum for dialog sizes
 public enum ModalSize: String {

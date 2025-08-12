@@ -121,7 +121,7 @@ public enum WebCoreElementAttribute {
     case pair(String, String)
     case script(String)
     case innerHTML(String)
-    case item(CoreWebContent)
+    case item(WebElement)
     case variant(BootstrapVariant)
     case parent(Any)
     case label(String)
@@ -132,7 +132,7 @@ internal enum WebCoreLayoutType {
     case horizontal
 }
 
-public class CoreWebContent {
+public class WebElement {
     
     public var builderId: String = UUID()
         .uuidString
@@ -144,7 +144,7 @@ public class CoreWebContent {
     internal var attributes: [WebCoreElementAttribute] = []
     internal var layout: WebCoreLayoutType = .vertical
     public var elementName: String = "div"
-    public var subElements: [CoreWebContent] = []
+    public var subElements: [WebElement] = []
 
     @discardableResult
     public func addAttribute(_ attribute: WebCoreElementAttribute) -> Self {
@@ -445,8 +445,8 @@ public protocol WebApiEndpoint {
     func acceptedRoles() -> [String]?
 }
 
-internal extension [CoreWebContent] {
-    mutating func push(_ element: CoreWebContent, _ closure: (() -> Void)) {
+internal extension [WebElement] {
+    mutating func push(_ element: WebElement, _ closure: (() -> Void)) {
         self.append(element)
         closure()
         self.removeAll(where: { $0.builderId == element.builderId })
@@ -488,8 +488,8 @@ open class CoreWebEndpoint {
     internal var title: String? = nil
     internal var head: [HeadItem] = []
     internal var builderScripts: [String] = []
-    internal var webRootElement: CoreWebContent? = nil
-    internal var stack: [CoreWebContent] = []
+    internal var webRootElement: WebElement? = nil
+    internal var stack: [WebElement] = []
     
     // default content methods
     open func content() -> Any? {

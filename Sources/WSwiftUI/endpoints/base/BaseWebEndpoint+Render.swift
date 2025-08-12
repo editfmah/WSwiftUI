@@ -7,7 +7,7 @@
 
 let tab = "    "
 
-fileprivate extension CoreWebContent {
+fileprivate extension WebElement {
     var value: String {
         get {
             if let value = attributes.first(where: { if case .value(_) = $0 { return true }
@@ -79,7 +79,7 @@ internal extension CoreWebEndpoint {
     }
     
     // MARK: –– Render a WebCoreElement recursively
-    private func render(_ element: CoreWebContent, indent: String) -> String {
+    private func render(_ element: WebElement, indent: String) -> String {
         // 1. collect attributes, grouping multi-valued ones
         var classValues: [String] = []
         var styleValues: [String] = []

@@ -8,7 +8,7 @@
 import Foundation
 
 // 1) Dedicated subclass for the <form> element
-public class WebFormElement: CoreWebContent {}
+public class WebFormElement: WebElement {}
 
 // 2) Enums for method and encoding types
 public enum FormMethod: String {
