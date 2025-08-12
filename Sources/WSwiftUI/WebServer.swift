@@ -18,7 +18,7 @@ private extension HttpRequest {
                 return token
             }
             // check cookies
-            if let cookie = self.cookieData()["AuthToken"] {
+            if let cookie = self.cookieData()["auth"] {
                 return cookie
             }
             return nil

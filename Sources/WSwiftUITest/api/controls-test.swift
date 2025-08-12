@@ -12,7 +12,7 @@ class ControlsAPI : CoreWebEndpoint, WebEndpoint, WebApiEndpoint {
     
     func call() -> Any? {
         // This is a test API endpoint that returns a simple message
-        if let request = data.webVariabileMessage() {
+        if let request = data.webVariableTransaction() {
             request.data["server_time"] = .string("\(Date())")
             return request
         }

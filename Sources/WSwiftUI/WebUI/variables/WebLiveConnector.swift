@@ -44,7 +44,7 @@ public enum JSONValue: Codable, Equatable {
 }
 
 /// Payload for live variable read/write.
-public final class WebVariableMessage: Codable {
+public final class WebVariableTransaction: Codable {
     public var reference: String
     public var read: Bool
     public var write: Bool

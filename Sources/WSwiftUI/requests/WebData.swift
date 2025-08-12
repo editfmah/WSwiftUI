@@ -10,7 +10,7 @@ import Foundation
 public class WebData {
     
     private var combined: [String: String] = [:]
-    private var webVariableMessage: WebVariableMessage?
+    private var wVarTransaction: WebVariableTransaction?
 
     public struct FilePart {
         public let fieldName: String
@@ -54,8 +54,8 @@ public class WebData {
               let dict = obj as? [String: Any]
         else { return }
         
-        if let wVar = try? JSONDecoder().decode(WebVariableMessage.self, from: data) {
-            webVariableMessage = wVar
+        if let wVar = try? JSONDecoder().decode(WebVariableTransaction.self, from: data) {
+            wVarTransaction = wVar
         }
         
         func flatten(_ dict: [String: Any], prefix: String? = nil) {
@@ -174,8 +174,8 @@ public class WebData {
     }
 
     // MARK: – Accessors
-    public func webVariabileMessage() -> WebVariableMessage? {
-        return webVariableMessage
+    public func webVariableTransaction() -> WebVariableTransaction? {
+        return wVarTransaction
     }
     
     public func exists(_ key: String) -> Bool {

@@ -9,6 +9,7 @@
 import Foundation
 
 let maxContentLength = 100*(1024*1024) // 100M
+
 enum HttpParserError: Error {
     case invalidStatusLine(String)
 }

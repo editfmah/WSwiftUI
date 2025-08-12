@@ -86,7 +86,7 @@ class HomePage : BaseWebEndpoint, WebEndpoint, MenuIndexable {
     var menuSecondary: String?
     
     override func content() -> Any? {
-        template {
+        Template {
             VStack {
                 Jumbotron(fluid: true) {
                     JumbotronTitle("WSwiftUI")
