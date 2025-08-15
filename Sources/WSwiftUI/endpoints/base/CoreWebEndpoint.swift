@@ -125,6 +125,9 @@ public enum WebCoreElementAttribute {
     case variant(BootstrapVariant)
     case parent(Any)
     case label(String)
+    case initialValue(Any)
+    case errorMessage(String)
+    case domLoadedScript(String)
 }
 
 internal enum WebCoreLayoutType {
@@ -461,7 +464,9 @@ internal extension CoreWebEndpoint {
         }
         
         if let previousValue = ephemeralData["previous_\(name)"] {
-            value.setInitialValue(previousValue)
+            if let v = previousValue {
+                value.addAttribute(.initialValue(v))
+            }
         }
         
         if let errorMessage = ephemeralData ["error_\(name)"] as? String {
@@ -510,6 +515,7 @@ open class CoreWebEndpoint {
     internal var builderScripts: [String] = []
     internal var webRootElement: WebElement? = nil
     internal var stack: [WebElement] = []
+    internal var domLoadedScripts: [String] = []
     
     // default content methods
     open func content() -> Any? {

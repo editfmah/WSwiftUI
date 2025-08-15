@@ -117,12 +117,15 @@ public extension CoreWebEndpoint {
         
         // update with previous session data
         updateWithEphermeralData(binding)
-        
+
         let inp = WebInputElement()
         populateCreatedObject(inp)
         inp.elementName = "input"
         inp.type(type)
         inp.class("form-control")
+        if binding.errorMessage != nil {
+            inp.addAttribute(.errorMessage(binding.errorMessage!))
+        }
         let id = "\(inp.builderId)"
         inp.id(id)
         if let varName = binding.internalName { inp.name(varName) }
@@ -141,9 +144,16 @@ addCallback\(binding.builderId)(updateVariable\(inp.builderId));
     @discardableResult
     func TextArea(value: WebVariableElement)
     -> WebTextAreaElement {
+        
+        // update with previous session data
+        updateWithEphermeralData(value)
+        
         let ta = WebTextAreaElement()
         populateCreatedObject(ta)
         ta.elementName = "textarea"
+        if value.errorMessage != nil {
+            ta.addAttribute(.errorMessage(value.errorMessage!))
+        }
         ta.class("form-control")
         let id = "\(ta.builderId)"
         ta.id(id)

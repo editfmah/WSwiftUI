@@ -1,5 +1,5 @@
 //
-//  WebLiveConnector.swift
+//  WebVariableTransaction.swift
 //  WSwiftUI
 //
 //  Created by Adrian Herridge on 10/08/2025.
@@ -50,16 +50,19 @@ public final class WebVariableTransaction: Codable {
     public var write: Bool
     public var delay: Int?          // optional; omit if unused
     public var data: [String: JSONValue]
+    public var errors: [String:String]? = nil
 
     public init(reference: String,
                 read: Bool,
                 write: Bool,
                 delay: Int? = nil,
-                data: [String: JSONValue]) {
+                data: [String: JSONValue],
+                errors: [String:String]? = nil) {
         self.reference = reference
         self.read = read
         self.write = write
         self.delay = delay
         self.data = data
+        self.errors = errors
     }
 }

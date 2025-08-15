@@ -61,12 +61,19 @@ public extension CoreWebEndpoint {
                 binding: WebVariableElement,
                 _ content: WebComposerClosure)
     -> WebPickerElement {
+        
+        // update with previous session data
+        updateWithEphermeralData(binding)
+        
         switch type {
             case .combo:
                 let picker = createPicker { el in
                     el.elementName = "select"
                     el.class("form-select")
                     el.value = binding
+                    if binding.errorMessage != nil {
+                        el.addAttribute(.errorMessage(binding.errorMessage!))
+                    }
                     el.type = type
                     el.addAttribute(.custom("onChange=\"updateWebVariable\(binding.builderId)(this.value);\""))
                     // register callbacks for updates to the bound variable
@@ -92,6 +99,9 @@ public extension CoreWebEndpoint {
                     el.class("btn-group")
                     el.class("btn-group-toggle")
                     el.addAttribute(.pair("role", "group"))
+                    if binding.errorMessage != nil {
+                        el.addAttribute(.errorMessage(binding.errorMessage!))
+                    }
                     el.value = binding
                     el.type = type
                 }
@@ -106,6 +116,9 @@ public extension CoreWebEndpoint {
                 let picker = createPicker { el in
                     el.elementName = "div"
                     el.value = binding
+                    if binding.errorMessage != nil {
+                        el.addAttribute(.errorMessage(binding.errorMessage!))
+                    }
                     el.type = type
                 }
                 stack.append(picker)

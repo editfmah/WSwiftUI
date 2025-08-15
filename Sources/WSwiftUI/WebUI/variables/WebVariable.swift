@@ -37,6 +37,10 @@ public class WebVariableElement : WebElement {
     
     private var initial: Any? = nil
     
+    internal func setInitialValue(_ value: Any) {
+        initial = value
+    }
+    
     @discardableResult
     internal func asJSValue() -> String {
         switch variableType {
@@ -78,13 +82,9 @@ public class WebVariableElement : WebElement {
         return initial as? Bool ?? false
     }
     
-    internal func setInitialValue(_ value: Any?) {
-        self.initial = value
-        
-    }
-    
     @discardableResult
     override public func name(_ name: String) -> Self {
+        attributes.removeAll(where: { if case .name(_) = $0 { return true } else { return false } })
         addAttribute(.name(name))
         internalName = name
         return self
@@ -94,6 +94,9 @@ public class WebVariableElement : WebElement {
     internal func createWebVariableFunctions() -> Self {
         // create the functions to get/set this variable
         addAttribute(.script("""
+        
+        // definition of variable for global use
+        var \(builderId) = \(asJSValue());
         
         // array of callback functions that take a single value parameter
         var callbacks\(builderId) = [];
@@ -120,12 +123,6 @@ public class WebVariableElement : WebElement {
                 callbacks\(builderId)[i](value);
             }
         }
-        
-        // on page load, set the initial value of the variable
-        document.addEventListener('DOMContentLoaded', function() {
-            updateWebVariable\(builderId)(\(asJSValue());
-        });
-        
         """))
     }
     
@@ -320,17 +317,14 @@ public class WebVariableElement : WebElement {
                 }, pollEverySec_\(builderId) * 1000);
             }
 
-            document.addEventListener('DOMContentLoaded', function(){
-                // DO NOT write initially; just begin polling if configured.
-                startPolling_\(builderId)();
-            });
-
             // Manual hooks if needed
             window['liveWrite_\(builderId)'] = function(){ return send_\(builderId)(false, true); };
             window['liveRead_\(builderId)']  = function(){ return send_\(builderId)(\(allowRead ? "true" : "false"), false); };
             window['liveSync_\(builderId)']  = function(){ return send_\(builderId)(\(allowRead ? "true" : "false"), \(allowWrite ? "true" : "false")); };
         })();
         """))
+        
+        self.addAttribute(.domLoadedScript("startPolling_\(builderId)();"))
 
         return self
     }
@@ -356,9 +350,8 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.script("var \(element.builderId) = \(value ? "true" : "false");"))
             element.addAttribute(.value(value ? "true" : "false"))
-            element.setInitialValue(value)
+            element.addAttribute(.initialValue(value))
             
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
@@ -379,8 +372,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.script("var \(element.builderId) = \(value);"))
-            element.setInitialValue(value)
+            element.addAttribute(.initialValue(value))
             element.addAttribute(.value(String(value)))
             
             // observer to keep hidden field in sync
@@ -400,8 +392,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.script("var \(element.builderId) = \(value);"))
-            element.setInitialValue(value)
+            element.addAttribute(.initialValue(value))
             element.addAttribute(.value(String(value)))
             
             // observer to keep hidden field in sync
@@ -422,8 +413,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.name(element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.script("var \(element.builderId) = '\(value)';"))
-            element.setInitialValue(value)
+            element.addAttribute(.initialValue(value))
             element.addAttribute(.value(value))
             
             // observer to keep hidden field in sync
@@ -444,8 +434,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.script("var \(element.builderId) = [\(values.map { "'\($0)'" }.joined(separator: ","))];"))
-            element.setInitialValue(values)
+            element.addAttribute(.initialValue(values))
             element.addAttribute(.value("[\(values.map { "'\($0)'" }.joined(separator: ","))]"))
             
             // observer to keep hidden field in sync

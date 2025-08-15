@@ -48,8 +48,25 @@ public extension CoreWebEndpoint {
                         valueString = String(doubleValue)
                     } else if let boolValue = value as? Bool {
                         valueString = String(boolValue)
+                    } else if let wVarValue = value as? JSONValue {
+                        switch wVarValue {
+                            case .string(let str):
+                                valueString = str
+                            case .int(let intVal):
+                                valueString = String(intVal)
+                            case .double(let doubleVal):
+                                valueString = String(doubleVal)
+                            case .bool(let boolVal):
+                                valueString = String(boolVal)
+                            case .array(let arr):
+                                valueString = arr.description // or handle as needed
+                            case .object(let obj):
+                                valueString = obj.description // or handle as needed
+                            case .null:
+                                valueString = ""
+                        }
                     } else {
-                        return false // unsupported type
+                        return false
                     }
                     
                     for condition in conditions {
