@@ -13,6 +13,18 @@ public class WebBadgeElement: WebElement {}
 // 2) Variant enum matching Bootstrap badge contextual colors
 public enum BootstrapVariant: String {
     case primary, secondary, success, danger, warning, info, light, dark
+    var rgb: String {
+        switch self {
+        case .primary: return "rgb(0, 123, 255)"
+        case .secondary: return "rgb(108, 117, 125)"
+        case .success: return "rgb(40, 167, 69)"
+        case .danger: return "rgb(220, 53, 69)"
+        case .warning: return "rgb(255, 193, 7)"
+        case .info: return "rgb(23, 162, 184)"
+        case .light: return "rgb(248, 249, 250)"
+        case .dark: return "rgb(52, 58, 64)"
+        }
+    }
 }
 
 // 3) Fluent modifiers for Badge

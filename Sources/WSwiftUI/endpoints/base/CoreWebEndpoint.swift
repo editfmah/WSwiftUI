@@ -453,6 +453,26 @@ internal extension [WebElement] {
     }
 }
 
+internal extension CoreWebEndpoint {
+    func updateWithEphermeralData(_ value: WebVariableElement) {
+        
+        guard let name = value.internalName else {
+            return
+        }
+        
+        if let previousValue = ephemeralData["previous_\(name)"] {
+            value.setInitialValue(previousValue)
+        }
+        
+        if let errorMessage = ephemeralData ["error_\(name)"] as? String {
+            value.errorMessage = errorMessage
+        } else {
+            value.errorMessage = nil
+        }
+        
+    }
+}
+
 open class CoreWebEndpoint {
     
     // create a new object and return it

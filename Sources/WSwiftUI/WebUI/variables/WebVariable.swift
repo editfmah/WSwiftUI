@@ -33,8 +33,33 @@ public class WebVariableElement : WebElement {
     
     internal var variableType: WebVariableType = .bool
     internal var internalName: String? = nil
+    internal var errorMessage: String? = nil
     
     private var initial: Any? = nil
+    
+    @discardableResult
+    internal func asJSValue() -> String {
+        switch variableType {
+        case .bool:
+            return asBool() ? "true" : "false"
+        case .int:
+            return String(asInt())
+        case .double:
+            return String(asDouble())
+        case .string:
+            return "'\(asString())'"
+        case .array:
+            let array = asArray().map { "'\($0)'" }.joined(separator: ",")
+            return "[\(array)]"
+        case .object:
+            // Assuming object is a dictionary of String: Any
+            if let dict = initial as? [String: Any] {
+                let entries = dict.map { "'\($0.key)': '\($0.value)'" }.joined(separator: ",")
+                return "{\(entries)}"
+            }
+            return "{}"
+        }
+    }
     
     @discardableResult
     internal func asArray() -> [String] {
@@ -55,6 +80,7 @@ public class WebVariableElement : WebElement {
     
     internal func setInitialValue(_ value: Any?) {
         self.initial = value
+        
     }
     
     @discardableResult
@@ -97,7 +123,7 @@ public class WebVariableElement : WebElement {
         
         // on page load, set the initial value of the variable
         document.addEventListener('DOMContentLoaded', function() {
-            updateWebVariable\(builderId)('\(asString())');
+            updateWebVariable\(builderId)(\(asJSValue());
         });
         
         """))

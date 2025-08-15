@@ -177,7 +177,14 @@ public class WebData {
     public func webVariableTransaction() -> WebVariableTransaction? {
         return wVarTransaction
     }
-    
+    public func raw(_ key: String) -> Any? {
+        if let value = combined[key] {
+            return value
+        } else if let filePart = files[key] {
+            return filePart
+        }
+        return nil
+    }
     public func exists(_ key: String) -> Bool {
         return combined[key] != nil
     }

@@ -114,6 +114,10 @@ public extension CoreWebEndpoint {
     func TextField(binding: WebVariableElement,
                type: InputType = .text)
     -> WebInputElement {
+        
+        // update with previous session data
+        updateWithEphermeralData(binding)
+        
         let inp = WebInputElement()
         populateCreatedObject(inp)
         inp.elementName = "input"

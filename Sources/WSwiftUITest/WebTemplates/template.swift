@@ -63,7 +63,7 @@ extension CoreWebEndpoint {
             .default()
             .sticky()
             .collapseOnScroll(threshold: 100, collapsedClass: "py-1")
-            .background(.darkGrey).opacity(0.7)
+            .background(.darkgrey).opacity(0.7)
             
         }
     }

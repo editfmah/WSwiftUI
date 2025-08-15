@@ -284,8 +284,8 @@ public enum WebColor {
     case lightbrown
     case darkbrown
     case grey
-    case darkGrey
-    case lightGrey
+    case darkgrey
+    case lightgrey
     case indigo
     case lightindigo
     case darkindigo
@@ -320,9 +320,9 @@ public enum WebColor {
             return "secondary"
         case .grey:
             return "secondary"
-        case .lightGrey:
+        case .lightgrey:
             return "light"
-        case .darkGrey:
+        case .darkgrey:
             return "dark"
         case .indigo, .lightindigo, .darkindigo:
             return "primary"
@@ -393,10 +393,10 @@ public enum WebColor {
             return "rgba(139,69,19,1)"
         case .grey:
             return "rgba(128,128,128,1)"
-        case .darkGrey:
+        case .darkgrey:
             return "rgba(64,64,64,1)"
-        case .lightGrey:
-            return "rgba(192,192,192,1)"
+        case .lightgrey:
+            return "rgba(235,235,235,1)"
         case .indigo:
             return "rgba(75,0,130,1)"
         case .lightindigo:
@@ -479,10 +479,10 @@ public enum WebColor {
             return "#8B4513"
         case .grey:
             return "#808080"
-        case .darkGrey:
+        case .darkgrey:
             return "#404040"
-        case .lightGrey:
-            return "#C0C0C0"
+        case .lightgrey:
+            return "#e0e0e0"
         case .indigo:
             return "#4B0082"
         case .lightindigo:
