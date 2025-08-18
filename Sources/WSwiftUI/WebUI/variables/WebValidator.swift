@@ -17,6 +17,21 @@ public enum ValidationCondition {
     case validDate
     case validJSON
     case validNumber
+    
+    var encoded: String {
+        switch self {
+            case .notEmpty: return "notEmpty"
+            case .empty: return "empty"
+            case .atLeast(let length): return "atLeast:\(length)"
+            case .validURL: return "validURL"
+            case .validEmail: return "validEmail"
+            case .validPhoneNumber: return "validPhoneNumber"
+            case .validDate: return "validDate"
+            case .validJSON: return "validJSON"
+            case .validNumber: return "validNumber"
+        }
+    }
+    
 }
 
 public enum ValidateField {

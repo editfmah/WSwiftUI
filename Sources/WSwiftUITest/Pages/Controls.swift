@@ -37,7 +37,7 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
                         VStack {
                             Form {
                                 let wVar = WString("op2").name("name")
-                                TextField(binding: wVar).type(.text).placeholder("placehodler text").label("Text Input")
+                                TextField(binding: wVar).type(.text).placeholder("placehodler text").label("Text Input").validate([.notEmpty,.atLeast(6)])
                                 Button("Save").variant(.primary).type("SUBMIT")
                             }
                         }
@@ -51,9 +51,6 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
     }
     
     override func save() -> Any? {
-        if validateData([.named("name", [.notEmpty, .atLeast(6)])]) == false {
-            return content()
-        }
         return redirect(self.path)
     }
     

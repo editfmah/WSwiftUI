@@ -102,6 +102,7 @@ internal extension CoreWebEndpoint {
         var initialValue: Any? = nil
         var value: Any? = nil
         var errorMessage: String? = nil
+        var validators: [ValidationCondition] = []
         
         // insert the registration script as the first script
         let registrationScript = "var \(element.builderId) = document.getElementsByClassName('\(element.builderId)')[0];"
@@ -148,6 +149,8 @@ internal extension CoreWebEndpoint {
                 case .errorMessage(let message):
                     errorMessage = message
                     classValues.append("border-danger")
+                case .validation(let condition):
+                    validators.append(condition)
             }
         }
         
@@ -218,6 +221,9 @@ internal extension CoreWebEndpoint {
         }
         parts.append(contentsOf: otherParts)
         
+        // now compile an encoded set of validators
+        parts.append("validation=\" \( validators.map { $0.encoded }.joined(separator: ","))\"")
+        
         var result: String = ""
         
         // check for a label to this element
@@ -276,6 +282,11 @@ internal extension CoreWebEndpoint {
         // now see if there is an inline error message to show
         if let errorMessage = errorMessage {
             result += "\(childIndent)<div style=\"font-size: x-small; color: red;\">\(errorMessage)</div>\n"
+        }
+        
+        // now see if there are any validation items, which may need to show an error message
+        if validators.isEmpty == false {
+            result += "\(childIndent)<div class=\"text-danger font-weight-light\" id=\"validation_error_\(element.builderId)\"></div>\n"
         }
         return result
         

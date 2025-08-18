@@ -128,6 +128,7 @@ public enum WebCoreElementAttribute {
     case initialValue(Any)
     case errorMessage(String)
     case domLoadedScript(String)
+    case validation(ValidationCondition)
 }
 
 internal enum WebCoreLayoutType {
@@ -332,6 +333,23 @@ public class WebElement {
             """))
         if disabled.asBool() {
             addAttribute(.class("disabled"))
+        }
+        return self
+    }
+    
+    @discardableResult
+    public func required(_ reqd: Bool = false) -> Self {
+        if reqd {
+            addAttribute(.custom("required"))
+        }
+        return self
+    }
+    
+    @discardableResult
+    public func validate(_ conditions: [ValidationCondition]) -> Self {
+        // so we will generate js to check the validation status of the element, we will not allow form submission
+        for condition in conditions {
+            addAttribute(.validation(condition))
         }
         return self
     }
