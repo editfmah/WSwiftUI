@@ -103,12 +103,14 @@ public extension CoreWebEndpoint {
         content()
         
         // Append a Bootstrap progress bar at the bottom
+        // Progress container
         _ = createUploader { el in
             el.elementName = "div"
             el.class("progress")
             el.class("mt-2")
+            el.addAttribute(.pair("style", "pointer-events:none;"))
             el.addAttribute(.pair("id", "progress_\(uploader.builderId)"))
-            
+
             _ = createUploader { bar in
                 bar.elementName = "div"
                 bar.class("progress-bar")
@@ -257,7 +259,6 @@ public extension CoreWebEndpoint {
 })();
 """)
 
-        
         // Pop uploader from stack
         stack.removeAll(where: { $0.builderId == uploader.builderId })
         return uploader
