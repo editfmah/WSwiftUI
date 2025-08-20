@@ -123,6 +123,15 @@ public extension CoreWebEndpoint {
             }
         }
         
+        // Hidden file input for click-to-upload
+        _ = createUploader { input in
+            input.elementName = "input"
+            input.type("file")
+            input.addAttribute(.pair("id", "fileinput_\(uploader.builderId)"))
+            input.addAttribute(.custom("multiple"))                 // allow multiple selection
+            input.addAttribute(.pair("style", "display:none;"))
+        }
+        
         // Wire up drag&drop + uploads via XHR (for upload progress events)
         uploader.script("""
 (function() {
