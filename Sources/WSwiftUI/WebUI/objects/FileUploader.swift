@@ -89,6 +89,7 @@ public extension CoreWebEndpoint {
             el.class("rounded")
             el.class("p-3")
             el.class("file-uploader")
+            el.id(el.builderId)
             
             // Config via data-* for the JS to read
             el.uploadURL(url)
@@ -128,7 +129,7 @@ public extension CoreWebEndpoint {
             input.elementName = "input"
             input.type("file")
             input.addAttribute(.pair("id", "fileinput_\(uploader.builderId)"))
-            input.addAttribute(.custom("multiple"))                 // allow multiple selection
+            input.addAttribute(.pair("multiple","multiple"))                 // allow multiple selection
             input.addAttribute(.pair("style", "display:none;"))
         }
         
@@ -136,6 +137,9 @@ public extension CoreWebEndpoint {
         uploader.script("""
 (function() {
     var zone = document.getElementById('\(uploader.builderId)');
+    if (!zone && document.currentScript && document.currentScript.parentElement) {
+        zone = document.currentScript.parentElement; // fallback if ID not found
+    }
     if (!zone) return;
 
     // --- Prevent browser from navigating to dropped files (Safari/Chrome/Edge) ---
