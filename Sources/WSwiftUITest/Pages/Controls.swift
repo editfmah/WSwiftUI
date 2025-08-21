@@ -44,6 +44,14 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
                     }
                 }
                 
+                HStack {
+                    FileUploader(action: "/api/controls") {
+                        Text("Drop Files Here")
+                            .font(.title2)
+                            .foreground(.lightgrey)
+                    }
+                }
+                
             }.padding(80)
             
         }

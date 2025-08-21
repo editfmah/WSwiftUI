@@ -137,23 +137,37 @@ public extension CoreWebEndpoint {
         uploader.script("""
 (function() {
     var zone = document.getElementById('\(uploader.builderId)');
-    if (!zone && document.currentScript && document.currentScript.parentElement) {
-        zone = document.currentScript.parentElement; // fallback if ID not found
-    }
     if (!zone) return;
 
-    // --- Prevent browser from navigating to dropped files (Safari/Chrome/Edge) ---
+    // --- Prevent browser navigation on file drop (outside drop zones only) ---
     if (!window.__wsuFileDropBlockerInstalled) {
         window.__wsuFileDropBlockerInstalled = true;
-        ['dragover','drop'].forEach(function(ev) {
-            document.addEventListener(ev, function(e) {
+
+        // Allow drop anywhere by preventing default dragover
+        document.addEventListener('dragover', function(e) {
+            e.preventDefault();
+        }, false);
+
+        // If dropped outside a .file-uploader, prevent default to stop navigation
+        document.addEventListener('drop', function(e) {
+            var t = e.target;
+            var insideUploader = false;
+            while (t && t !== document) {
+                if ((t.classList && t.classList.contains('file-uploader')) ||
+                    (t.getAttribute && t.getAttribute('data-upload-url'))) {
+                    insideUploader = true;
+                    break;
+                }
+                t = t.parentElement;
+            }
+            if (!insideUploader) {
                 e.preventDefault();
-                e.stopPropagation();
-            }, { capture: true });
-        });
+            }
+            // NOTE: do not stopPropagation; let zone handlers run
+        }, false);
     }
 
-    // Make zone behave like a button for accessibility
+    // Make zone accessible/clickable
     zone.setAttribute('tabindex', '0');
     zone.setAttribute('role', 'button');
     try { zone.style.cursor = 'pointer'; } catch (_) {}
@@ -161,7 +175,7 @@ public extension CoreWebEndpoint {
     var progressBar = document.getElementById('progressbar_\(uploader.builderId)');
     var fileInput   = document.getElementById('fileinput_\(uploader.builderId)');
 
-    // If you set data-accept on the zone, apply it to the input
+    // Optional accept types via data-accept on the zone
     var accept = zone.getAttribute('data-accept');
     if (accept && fileInput) fileInput.setAttribute('accept', accept);
 
@@ -173,41 +187,47 @@ public extension CoreWebEndpoint {
         progressBar.textContent = pct + '%';
     }
 
-    var uploadURL   = zone.getAttribute('data-upload-url') || '';
-    var method      = zone.getAttribute('data-method') || 'POST';
-    var fieldName   = zone.getAttribute('data-field-name') || 'files[]';
-    var parallel    = Math.max(1, parseInt(zone.getAttribute('data-parallel') || '3', 10) || 3);
+    var uploadURL = zone.getAttribute('data-upload-url') || '';
+    if (!uploadURL) { console.warn('FileUploader: missing data-upload-url'); }
+    var method    = zone.getAttribute('data-method') || 'POST';
+    var fieldName = zone.getAttribute('data-field-name') || 'files[]';
+    var parallel  = Math.max(1, parseInt(zone.getAttribute('data-parallel') || '3', 10) || 3);
+    var withCreds = zone.getAttribute('data-with-credentials') === 'true';
 
     var extra = {};
     try {
         var extraAttr = zone.getAttribute('data-extra');
         if (extraAttr) extra = JSON.parse(extraAttr);
-    } catch (_) { /* ignore */ }
+    } catch (_) { /* ignore malformed JSON */ }
 
-    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+    function preventDefaults(e) { e.preventDefault(); }
+
+    // Zone-level handlers (no capture; don't stop propagation)
     ['dragenter','dragover','dragleave','drop'].forEach(function(ev) {
-        zone.addEventListener(ev, preventDefaults, { capture: true });
         zone.addEventListener(ev, preventDefaults, false);
     });
 
     zone.addEventListener('dragover', function(e) {
         if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
         zone.classList.add('bg-light');
-    });
-    zone.addEventListener('dragleave', function() { zone.classList.remove('bg-light'); });
+    }, false);
+
+    zone.addEventListener('dragleave', function() {
+        zone.classList.remove('bg-light');
+    }, false);
+
     zone.addEventListener('drop', function(e) {
         zone.classList.remove('bg-light');
         var files = (e.dataTransfer && e.dataTransfer.files) ? Array.from(e.dataTransfer.files) : [];
         if (files.length) uploadFiles(files);
-    });
+    }, false);
 
-    // --- NEW: click / keyboard triggers for file chooser ---
+    // Click/keyboard to open chooser
     if (fileInput) {
-        zone.addEventListener('click', function(e) {
-            // Reset so selecting the same file twice still triggers change
+        zone.addEventListener('click', function() {
             fileInput.value = "";
             fileInput.click();
-        });
+        }, false);
 
         zone.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -215,12 +235,12 @@ public extension CoreWebEndpoint {
                 fileInput.value = "";
                 fileInput.click();
             }
-        });
+        }, false);
 
         fileInput.addEventListener('change', function() {
             var files = Array.from(fileInput.files || []);
             if (files.length) uploadFiles(files);
-        });
+        }, false);
     }
 
     function uploadFiles(files) {
@@ -231,11 +251,14 @@ public extension CoreWebEndpoint {
 
         function next() {
             while (inFlight < parallel && index < files.length) send(files[index++]);
-            if (inFlight === 0 && index >= files.length) setTimeout(function(){ setProgress(0); }, 800);
+            if (inFlight === 0 && index >= files.length) {
+                setTimeout(function(){ setProgress(0); }, 800);
+            }
         }
 
         function send(file) {
             inFlight++;
+
             var form = new FormData();
             form.append(fieldName, file, file.name);
             Object.keys(extra).forEach(function(k){ form.append(k, extra[k]); });
@@ -243,8 +266,10 @@ public extension CoreWebEndpoint {
             var xhr = new XMLHttpRequest();
             var lastLoaded = 0;
 
+            if (withCreds) xhr.withCredentials = true;
             xhr.open(method, uploadURL, true);
 
+            // Overall progress across all files
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
                     var delta = e.loaded - lastLoaded;
@@ -255,10 +280,19 @@ public extension CoreWebEndpoint {
                 }
             };
 
+            xhr.onerror = function() {
+                console.error('FileUploader: upload network error', { file: file.name });
+            };
+
+            xhr.onload = function() {
+                if (xhr.status < 200 || xhr.status >= 300) {
+                    console.error('FileUploader: upload failed', { file: file.name, status: xhr.status, response: xhr.responseText });
+                }
+            };
+
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     inFlight--;
-                    // TODO: success/failure hooks based on xhr.status
                     next();
                 }
             };
@@ -271,6 +305,7 @@ public extension CoreWebEndpoint {
     }
 })();
 """)
+
 
         // Pop uploader from stack
         stack.removeAll(where: { $0.builderId == uploader.builderId })
