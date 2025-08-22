@@ -5,12 +5,20 @@
 //  Created by Adrian on 01/07/2025.
 //
 
+public enum VStackContentMode {
+    case fit
+    case fill
+}
+
 public extension CoreWebEndpoint {
     
     @discardableResult
-    func VStack(_ closure: WebComposerClosure) -> WebElement {
+    func VStack(mode: VStackContentMode = .fill, _ closure: WebComposerClosure) -> WebElement {
         let object = create { element in
             element.class("col")
+            if mode == .fit {
+                element.class("col-md-auto")
+            }
             element.layout = .vertical
         }
         stack.append(object)
