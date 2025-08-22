@@ -10,108 +10,105 @@ import CommonCrypto
 
 import Foundation
 
+import Foundation
+
 extension String {
-    /// Computes the MD5 hash of the UTF-8 representation of this string
-    /// and returns the hex-encoded digest.
+    /// MD5 of the UTF-8 bytes, hex-encoded (lowercase)
     var md5: String {
         // 1) Prepare message
         let message = Array(self.utf8)
-        let messageLenBits = UInt64(message.count) * 8
+        let bitLen = UInt64(message.count) * 8
         
-        // append the bit '1' (0x80), then pad with zeros until length ≡ 448 mod 512
+        // append 0x80, then pad with 0x00 until length ≡ 448 (mod 512)
         var padded = message + [0x80]
         while ((padded.count * 8) % 512) != 448 {
             padded.append(0)
         }
-        // append original length in bits as a 64-bit little-endian integer
-        padded += messageLenBits.littleEndian.bytes
+        // append original length (bits) as 64-bit little-endian
+        padded += bitLen.bytesLE
         
-        // MD5 uses four 32-bit state variables
+        // 2) Initialize state
         var a0: UInt32 = 0x67452301
         var b0: UInt32 = 0xefcdab89
         var c0: UInt32 = 0x98badcfe
         var d0: UInt32 = 0x10325476
         
-        // Constants for each operation: K[i] = floor(abs(sin(i+1)) * 2^32)
-        let K: [UInt32] = (0..<64).map {
-            UInt32(bitPattern: Int32((abs(sin(Double($0 + 1))) * Double(UInt32.max)).rounded()))
+        // 3) Constants
+        let K: [UInt32] = (0..<64).map { i in
+            // floor(abs(sin(i+1)) * 2^32)
+            let x = floor(abs(sin(Double(i + 1))) * 4294967296.0)
+            return UInt32(truncatingIfNeeded: UInt64(x))
         }
-        
-        // Per-round shift amounts
         let s: [UInt32] = [
-            7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
-            5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
-            4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
-            6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
+            7,12,17,22, 7,12,17,22, 7,12,17,22, 7,12,17,22,
+            5, 9,14,20, 5, 9,14,20, 5, 9,14,20, 5, 9,14,20,
+            4,11,16,23, 4,11,16,23, 4,11,16,23, 4,11,16,23,
+            6,10,15,21, 6,10,15,21, 6,10,15,21, 6,10,15,21
         ]
         
-        // Process the message in successive 512-bit (64-byte) chunks
+        // 4) Process 512-bit chunks
         for chunkStart in stride(from: 0, to: padded.count, by: 64) {
-            // break chunk into sixteen 32-bit little-endian words M[j], 0 ≤ j < 16
             let chunk = Array(padded[chunkStart..<chunkStart+64])
+            // break into 16 little-endian 32-bit words
             var M = [UInt32](repeating: 0, count: 16)
             for j in 0..<16 {
                 let i = j * 4
-                M[j] = UInt32(chunk[i]) |
-                (UInt32(chunk[i+1]) << 8) |
-                (UInt32(chunk[i+2]) << 16) |
-                (UInt32(chunk[i+3]) << 24)
+                M[j] =  UInt32(chunk[i])
+                | (UInt32(chunk[i+1]) << 8)
+                | (UInt32(chunk[i+2]) << 16)
+                | (UInt32(chunk[i+3]) << 24)
             }
             
-            // Initialize per-chunk variables
             var A = a0, B = b0, C = c0, D = d0
-            
-            // Main loop
             for i in 0..<64 {
-                var F: UInt32 = 0
-                var g: Int = 0
-                
-                switch i {
-                case  0..<16:
-                    F = (B & C) | ((~B) & D)
-                    g = i
-                case 16..<32:
-                    F = (D & B) | ((~D) & C)
-                    g = (5*i + 1) % 16
-                case 32..<48:
-                    F = B ^ C ^ D
-                    g = (3*i + 5) % 16
-                default:
-                    F = C ^ (B | (~D))
-                    g = (7*i) % 16
-                }
-                
+                let (F, g): (UInt32, Int) = {
+                    switch i {
+                        case 0..<16:   return ( (B & C) | ((~B) & D),           i )
+                        case 16..<32:  return ( (D & B) | ((~D) & C),  (5*i+1) % 16 )
+                        case 32..<48:  return ( B ^ C ^ D,            (3*i+5) % 16 )
+                        default:       return ( C ^ (B | (~D)),        (7*i)   % 16 )
+                    }
+                }()
                 let tmp = D
                 D = C
                 C = B
-                B = B &+ leftRotate((A &+ F &+ K[i] &+ M[g]), by: s[i])
+                B = B &+ rotl(A &+ F &+ K[i] &+ M[g], s[i])
                 A = tmp
             }
             
-            // Add this chunk's hash to result so far
             a0 = a0 &+ A
             b0 = b0 &+ B
             c0 = c0 &+ C
             d0 = d0 &+ D
         }
         
-        // Produce the final hash value (little-endian) as hex string
-        let digest = [a0, b0, c0, d0].flatMap { word -> [UInt8] in
-            let le = word.littleEndian
-            return [
-                UInt8(truncatingIfNeeded: le >> 0),
-                UInt8(truncatingIfNeeded: le >> 8),
-                UInt8(truncatingIfNeeded: le >> 16),
-                UInt8(truncatingIfNeeded: le >> 24),
-            ]
+        // 5) Output little-endian digest as hex
+        let digestWords = [a0, b0, c0, d0]
+        var out = [UInt8]()
+        out.reserveCapacity(16)
+        for w in digestWords {
+            let le = w.littleEndian
+            out.append(UInt8(truncatingIfNeeded: le >> 0))
+            out.append(UInt8(truncatingIfNeeded: le >> 8))
+            out.append(UInt8(truncatingIfNeeded: le >> 16))
+            out.append(UInt8(truncatingIfNeeded: le >> 24))
         }
-        
-        return digest.map { String(format: "%02x", $0) }.joined()
+        return out.map { String(format: "%02x", $0) }.joined()
     }
-    
-    /// Left-rotate a 32-bit integer by given number of bits
-    private func leftRotate(_ x: UInt32, by: UInt32) -> UInt32 {
-        return (x << by) | (x >> (32 - by))
+}
+
+// MARK: - helpers
+
+@inline(__always)
+private func rotl(_ x: UInt32, _ n: UInt32) -> UInt32 {
+    return (x << n) | (x >> (32 - n))
+}
+
+private extension UInt64 {
+    /// 8 bytes, little-endian
+    var bytesLE: [UInt8] {
+        var v = self.littleEndian
+        return withUnsafeBytes(of: &v) { Array($0) }
     }
 }
 
