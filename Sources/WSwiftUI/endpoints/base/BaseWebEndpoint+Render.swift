@@ -343,13 +343,16 @@ internal extension CoreWebEndpoint {
                 return "\(indent)<link \(parts.joined(separator: " ")) />\n"
                 
                 // MARK: Scripts & Styles
-            case .script(let src, let async, let `defer`, let type, let integrity, let crossOrigin):
+            case .script(let src, let async, let `defer`, let type, let integrity, let crossOrigin, let attributes):
                 var parts: [String] = ["src=\"\(src)\""]
                 if async               { parts.append("async") }
                 if `defer`             { parts.append("defer") }
                 if let t = type        { parts.append("type=\"\(t)\"") }
                 if let i = integrity   { parts.append("integrity=\"\(i)\"") }
                 if let co = crossOrigin{ parts.append("crossorigin=\"\(co)\"") }
+                if let extra = attributes {
+                    for (k,v) in extra { parts.append("\(k)=\"\(v)\"") }
+                }
                 return "\(indent)<script \(parts.joined(separator: " "))></script>\n"
                 
             case .inlineScript(let code):

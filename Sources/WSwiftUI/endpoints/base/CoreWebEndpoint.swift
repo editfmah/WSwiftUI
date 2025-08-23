@@ -83,7 +83,8 @@ public enum WebCoreHeadElement {
                 defer: Bool     = false,
                 type: String?   = nil,
                 integrity: String? = nil,
-                crossOrigin: String? = nil)
+                crossOrigin: String? = nil,
+                attributes: [String:String]? = nil)
     case inlineScript(String)
     
     case styleLink(href: String)  // alias for .link(.stylesheet,…)
