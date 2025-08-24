@@ -72,6 +72,7 @@ public extension CoreWebEndpoint {
     ///   - fieldName: multipart key (default "files[]")
     ///   - parallelUploads: number of concurrent uploads (default 3)
     ///   - extraFields: extra multipart fields to include (e.g. ["token": "..."])
+    ///   - onUpload: actions to run once per-file when that file completes (success or failure).
     @discardableResult
     func FileUploader(
         action url: String,
@@ -79,19 +80,18 @@ public extension CoreWebEndpoint {
         fieldName: String = "files[]",
         parallelUploads: Int = 3,
         extraFields: [String: String] = [:],
+        onUpload: [WebAction]? = nil,
         _ content: WebComposerClosure
     ) -> WebFileUploaderElement {
         
         let uploader = createUploader { el in
             el.elementName = "div"
-            // Keep the outer element plain; add light utility classes you can drop if you prefer
             el.class("border")
             el.class("rounded")
             el.class("p-3")
             el.class("file-uploader")
             el.id(el.builderId)
             
-            // Config via data-* for the JS to read
             el.uploadURL(url)
                 .method(method)
                 .fieldName(fieldName)
@@ -103,15 +103,14 @@ public extension CoreWebEndpoint {
         stack.append(uploader)
         content()
         
-        // Append a Bootstrap progress bar at the bottom
-        // Progress container
+        // Progress UI
         _ = createUploader { el in
             el.elementName = "div"
             el.class("progress")
             el.class("mt-2")
             el.addAttribute(.pair("style", "pointer-events:none;"))
             el.addAttribute(.pair("id", "progress_\(uploader.builderId)"))
-
+            
             _ = createUploader { bar in
                 bar.elementName = "div"
                 bar.class("progress-bar")
@@ -129,9 +128,12 @@ public extension CoreWebEndpoint {
             input.elementName = "input"
             input.type("file")
             input.addAttribute(.pair("id", "fileinput_\(uploader.builderId)"))
-            input.addAttribute(.pair("multiple","multiple"))                 // allow multiple selection
+            input.addAttribute(.pair("multiple","multiple"))
             input.addAttribute(.pair("style", "display:none;"))
         }
+        
+        // Compile actions
+        let onUploadJS = onUpload.map { CompileActions($0, builderId: uploader.builderId) } ?? ""
         
         // Wire up drag&drop + uploads via XHR (for upload progress events)
         uploader.script("""
@@ -143,12 +145,8 @@ public extension CoreWebEndpoint {
     if (!window.__wsuFileDropBlockerInstalled) {
         window.__wsuFileDropBlockerInstalled = true;
 
-        // Allow drop anywhere by preventing default dragover
-        document.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        }, false);
+        document.addEventListener('dragover', function(e) { e.preventDefault(); }, false);
 
-        // If dropped outside a .file-uploader, prevent default to stop navigation
         document.addEventListener('drop', function(e) {
             var t = e.target;
             var insideUploader = false;
@@ -160,10 +158,7 @@ public extension CoreWebEndpoint {
                 }
                 t = t.parentElement;
             }
-            if (!insideUploader) {
-                e.preventDefault();
-            }
-            // NOTE: do not stopPropagation; let zone handlers run
+            if (!insideUploader) e.preventDefault();
         }, false);
     }
 
@@ -202,7 +197,7 @@ public extension CoreWebEndpoint {
 
     function preventDefaults(e) { e.preventDefault(); }
 
-    // Zone-level handlers (no capture; don't stop propagation)
+    // Zone-level handlers
     ['dragenter','dragover','dragleave','drop'].forEach(function(ev) {
         zone.addEventListener(ev, preventDefaults, false);
     });
@@ -243,20 +238,37 @@ public extension CoreWebEndpoint {
         }, false);
     }
 
+    // Single place to invoke your compiled actions with a context
+    function runOnUpload(ctx) {
+        try {
+            (function(){
+                var upload = ctx; // <- your actions can read `upload`
+                \(onUploadJS)
+            })();
+        } catch (e) {
+            console && console.warn && console.warn('onUpload actions error', e);
+        }
+    }
+
     function uploadFiles(files) {
         var totalBytes = files.reduce(function(sum, f) { return sum + (f.size || 0); }, 0);
         var uploadedBytes = 0;
         var inFlight = 0;
-        var index = 0;
+        var nextIndex = 0;       // next file position to send
+        var completed = 0;       // completed files (success or error)
+        var count = files.length;
 
         function next() {
-            while (inFlight < parallel && index < files.length) send(files[index++]);
-            if (inFlight === 0 && index >= files.length) {
+            while (inFlight < parallel && nextIndex < files.length) {
+                var pos = nextIndex++;
+                send(files[pos], pos);
+            }
+            if (inFlight === 0 && completed >= count) {
                 setTimeout(function(){ setProgress(0); }, 800);
             }
         }
 
-        function send(file) {
+        function send(file, index) {
             inFlight++;
 
             var form = new FormData();
@@ -280,19 +292,38 @@ public extension CoreWebEndpoint {
                 }
             };
 
+            function finalize(ok) {
+                // Build a context for actions
+                var ctx = {
+                    fileName: file && file.name || '',
+                    size: file && file.size || 0,
+                    type: file && file.type || '',
+                    index: index,       // 0-based
+                    count: count,       // total files in this batch
+                    ok: !!ok,           // did it succeed (2xx)?
+                    status: xhr.status || 0,
+                    responseText: (function(){ try { return xhr.responseText || ''; } catch(_) { return ''; } })()
+                };
+                runOnUpload(ctx);
+            }
+
             xhr.onerror = function() {
                 console.error('FileUploader: upload network error', { file: file.name });
+                finalize(false);
             };
 
             xhr.onload = function() {
-                if (xhr.status < 200 || xhr.status >= 300) {
+                var ok = (xhr.status >= 200 && xhr.status < 300);
+                if (!ok) {
                     console.error('FileUploader: upload failed', { file: file.name, status: xhr.status, response: xhr.responseText });
                 }
+                finalize(ok);
             };
 
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     inFlight--;
+                    completed++;
                     next();
                 }
             };
@@ -305,8 +336,7 @@ public extension CoreWebEndpoint {
     }
 })();
 """)
-
-
+        
         // Pop uploader from stack
         stack.removeAll(where: { $0.builderId == uploader.builderId })
         return uploader
