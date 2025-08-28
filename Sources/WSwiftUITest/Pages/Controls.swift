@@ -38,14 +38,16 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
                             Form {
                                 let wVar = WString("op2").name("name")
                                 TextField(binding: wVar).type(.text).placeholder("placehodler text").label("Text Input").validate([.notEmpty,.atLeast(6)])
-                                Button("Save").variant(.primary).type("SUBMIT")
+                                Button("Save").variant(.primary).type("SUBMIT").id("btnfade")
                             }
                         }
                     }
                 }
                 
                 HStack {
-                    FileUploader(action: "/api/controls") {
+                    FileUploader(action: "/api/controls", onUpload: [
+                        .fadeOut(ref: "btnfade", duration: 1.0)
+                    ]) {
                         Text("Drop Files Here")
                             .font(.title2)
                             .foreground(.lightgrey)

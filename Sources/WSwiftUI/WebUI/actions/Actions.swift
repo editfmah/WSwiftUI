@@ -6,11 +6,6 @@
 //
 
 import Foundation
-import CommonCrypto
-
-import Foundation
-
-import Foundation
 
 extension String {
     /// MD5 of the UTF-8 bytes, hex-encoded (lowercase)
