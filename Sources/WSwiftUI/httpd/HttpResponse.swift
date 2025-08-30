@@ -84,6 +84,11 @@ public enum HttpResponseBody {
     }
 }
 
+public struct AuthenticatonToken {
+    public let token: String
+    public let expires: Date
+}
+
 // swiftlint:disable cyclomatic_complexity
 public enum HttpResponse {
     
@@ -163,7 +168,7 @@ public enum HttpResponse {
                 if let cookieAuth = auth {
                     headers.append((
                       "Set-Cookie",
-                      "auth=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=600;"
+                      "auth=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=3600;"
                     ))
                 } else {
                     // Clear the cookie immediately
@@ -182,7 +187,7 @@ public enum HttpResponse {
                     // Set a live cookie that lasts for 24 h (86 400 s)
                     headers.append((
                       "Set-Cookie",
-                      "auth=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=600"
+                      "auth=\(cookieAuth); Path=/; HttpOnly; SameSite=Lax; Max-Age=3600"
                     ))
                 } else {
                     // Clear the cookie immediately
