@@ -91,6 +91,18 @@ public class WebVariableElement : WebElement {
     }
     
     @discardableResult
+    public func onValueChange(_ actions: [WebAction]) -> Self {
+        // register callbacks for updates to the bound variable
+        attributes.append(.script("""
+                            function updateVariable\(builderId)(value) {
+                                \(compileActions(actions))
+                            }
+                            addCallback\(builderId)(updateVariable\(builderId));
+                        """))
+        return self
+    }
+    
+    @discardableResult
     internal func createWebVariableFunctions() -> Self {
         // create the functions to get/set this variable
         addAttribute(.script("""

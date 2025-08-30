@@ -300,6 +300,12 @@ public class WebElement {
         return self
     }
     
+    @discardableResult
+    public func hidden(_ condition: WebAction) -> Self {
+        
+        return self
+    }
+    
     /// hides the button via class and attribute
     @discardableResult
     public func hidden(_ hidden: WebVariableElement) -> Self {
