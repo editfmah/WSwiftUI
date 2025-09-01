@@ -130,6 +130,7 @@ public enum WebCoreElementAttribute {
     case errorMessage(String)
     case domLoadedScript(String)
     case validation(ValidationCondition)
+    case dontRegisterObject
 }
 
 internal enum WebCoreLayoutType {

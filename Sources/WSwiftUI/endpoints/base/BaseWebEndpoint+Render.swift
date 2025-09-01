@@ -103,10 +103,7 @@ internal extension CoreWebEndpoint {
         var value: Any? = nil
         var errorMessage: String? = nil
         var validators: [ValidationCondition] = []
-        
-        // insert the registration script as the first script
-        let registrationScript = "var \(element.builderId) = document.getElementsByClassName('\(element.builderId)')[0];"
-        scripts.append(registrationScript)
+        var dontRegister = false
         
         for attr in element.attributes {
             switch attr {
@@ -151,7 +148,15 @@ internal extension CoreWebEndpoint {
                     classValues.append("border-danger")
                 case .validation(let condition):
                     validators.append(condition)
+                case .dontRegisterObject:
+                    dontRegister = true
             }
+        }
+        
+        if !dontRegister {
+            // insert the registration script as the first script
+            let registrationScript = "var \(element.builderId) = document.getElementsByClassName('\(element.builderId)')[0];"
+            scripts.insert(registrationScript, at: 0)
         }
         
         // build the items up now if there are any
@@ -222,8 +227,9 @@ internal extension CoreWebEndpoint {
         parts.append(contentsOf: otherParts)
         
         // now compile an encoded set of validators
-        parts.append("validation=\" \( validators.map { $0.encoded }.joined(separator: ","))\"")
-        
+        if validators.isEmpty == false {
+            parts.append("validation=\" \( validators.map { $0.encoded }.joined(separator: ","))\"")
+        }
         var result: String = ""
         
         // check for a label to this element

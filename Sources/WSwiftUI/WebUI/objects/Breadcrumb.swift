@@ -43,6 +43,7 @@ public extension CoreWebEndpoint {
     let li = WebBreadcrumbItemElement()
     populateCreatedObject(li)
     li.elementName = "li"
+      li.addAttribute(.dontRegisterObject)
     var cls = "breadcrumb-item"
     if active {
       cls += " active"
@@ -55,6 +56,7 @@ public extension CoreWebEndpoint {
     let a = WebElement()
     populateCreatedObject(a)
     a.elementName = "a"
+    a.addAttribute(.dontRegisterObject)
     a.addAttribute(.pair("href", url))
     a.innerHTML(title)
     

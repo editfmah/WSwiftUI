@@ -104,6 +104,9 @@ public class WebVariableElement : WebElement {
     
     @discardableResult
     internal func createWebVariableFunctions() -> Self {
+        
+        addAttribute(.dontRegisterObject)
+        
         // create the functions to get/set this variable
         addAttribute(.script("""
         
@@ -136,6 +139,8 @@ public class WebVariableElement : WebElement {
             }
         }
         """))
+        
+        return self
     }
     
     @discardableResult
