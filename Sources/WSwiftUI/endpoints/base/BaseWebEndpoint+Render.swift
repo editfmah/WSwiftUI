@@ -230,16 +230,18 @@ internal extension CoreWebEndpoint {
         if validators.isEmpty == false {
             parts.append("validation=\" \( validators.map { $0.encoded }.joined(separator: ","))\"")
         }
-        var result: String = ""
+        
+        // use an array of strings to build the result as efficiently as possible
+        var result: [String] = []
         
         // check for a label to this element
         if let labelText = label {
-            result += "\(indent)<label for=\"\(element.builderId)\">\(labelText)</label>\n"
+            result.append("\(indent)<label for=\"\(element.builderId)\">\(labelText)</label>\n")
         }
         
         // 3. open tag (no “>” or newline yet)
         let attrString = parts.isEmpty ? "" : " " + parts.joined(separator: " ")
-        result += "\(indent)<\(element.elementName)\(attrString)"
+        result.append("\(indent)<\(element.elementName)\(attrString)")
         
         // flags
         let hasInner   = innerText != nil
@@ -248,53 +250,53 @@ internal extension CoreWebEndpoint {
         
         // 4a. nothing inside? close inline
         if !hasInner && !hasChildren && !hasScripts && items.isEmpty {
-            result += "></\(element.elementName)>\n"
-            return result
+            result.append("></\(element.elementName)>\n")
+            return result.joined(separator: "")
         }
         
         // 4b. there is something—emit children in order
-        result += ">"
+        result.append(">")
         if element.subElements.isEmpty == false {
-            result += "\n"
+            result.append("\n")
         }
         let childIndent = indent + tab
         
         // 4b.i innerHTML first
         if let html = innerText, element.subElements.isEmpty {
-            result += "\(html)"
+            result.append("\(html)")
         } else if let html = innerText {
-            result += "\(childIndent)\(html)\n"
+            result.append("\(childIndent)\(html)\n")
         } else if items.isEmpty == false {
-            result += items.joined(separator: "\n")
+            result.append(items.joined(separator: "\n"))
         }
         
         // 4b.ii then any nested elements
         for child in element.subElements {
-            result += render(child, indent: childIndent)
+            result.append(render(child, indent: childIndent))
         }
         
         // 4c. close tag
         if element.subElements.isEmpty == false {
-            result += "\(indent)</\(element.elementName)>\n"
+            result.append("\(indent)</\(element.elementName)>\n")
         } else {
-            result += "</\(element.elementName)>\n"
+            result.append("</\(element.elementName)>\n")
         }
         
         // 4b.iii then any scripts
         for js in scripts {
-            result += "\(childIndent)<script>\(js)</script>\n"
+            result.append("\(childIndent)<script>\(js)</script>\n")
         }
         
         // now see if there is an inline error message to show
         if let errorMessage = errorMessage {
-            result += "\(childIndent)<div style=\"font-size: x-small; color: red;\">\(errorMessage)</div>\n"
+            result.append("\(childIndent)<div style=\"font-size: x-small; color: red;\">\(errorMessage)</div>\n")
         }
         
         // now see if there are any validation items, which may need to show an error message
         if validators.isEmpty == false {
-            result += "\(childIndent)<div class=\"text-danger font-weight-light\" id=\"validation_error_\(element.builderId)\"></div>\n"
+            result.append("\(childIndent)<div class=\"text-danger font-weight-light\" id=\"validation_error_\(element.builderId)\"></div>\n")
         }
-        return result
+        return result.joined(separator: "")
         
     }
     
