@@ -107,6 +107,13 @@ public enum HttpBody {
 public struct HttpRequestHead {
     public let method: HttpMethod
     public let uri: String
+    public var path: String {
+        get {
+            // this could be "/auth-password?email=adrian@uncia.co.uk", return only the path part
+            let u = uri.split(separator: "?", maxSplits: 1, omittingEmptySubsequences: true).first ?? Substring("")
+            return "\(u)"
+        }
+    }
     public let version: String
     public let headers: [(String, String)]
     public var headerMap: [String:String] {

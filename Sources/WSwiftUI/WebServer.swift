@@ -287,7 +287,7 @@ public class WSwiftServer {
             return .accept
         }, handler: { request in
             
-            if let handler = self.svr.routes[request.head.uri] {
+            if let handler = self.svr.routes[request.head.path] {
                 return handler(request)
             }
             
