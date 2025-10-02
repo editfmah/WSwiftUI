@@ -60,7 +60,7 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
         
     }
     
-    override func save() -> Any? {
+    override func persist() -> Any? {
         return redirect(self.path)
     }
     

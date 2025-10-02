@@ -4,7 +4,7 @@ private extension HttpRequest {
     var authenticationToken: String? {
         get {
             // check the headers for an authentication token
-            if let authHeader = self.headers["Authorization"] {
+            if let authHeader = self.head.headers.first(where: { $0.0.lowercased() == "authorization" })?.1 {
                 // strip the bearer part
                 let components = authHeader.split(separator: " ")
                 guard components.count == 2, components[0].lowercased() == "bearer" else {
@@ -14,11 +14,11 @@ private extension HttpRequest {
                 return String(components[1])
             }
             // check the query parameters
-            if let token = self.queryparams["token"] {
+            if let token = self.head.queryParams["token"] {
                 return token
             }
             // check cookies
-            if let cookie = self.cookieData()["auth"] {
+            if let cookie = self.cookies["auth"] {
                 return cookie
             }
             return nil
@@ -31,11 +31,9 @@ public class WSwiftServer {
     // endpoint registration
     private var mutex: Mutex = Mutex()
     private var endpoints: [WebEndpoint] = []
-    
     public func register(_ newEndpoint: WebEndpoint) {
         
         let instance = newEndpoint.create()
-        
         
         // calculate the path from the controller and method
         let path = instance.path
@@ -55,10 +53,18 @@ public class WSwiftServer {
                 if let token = request.authenticationToken, let authenticator = self.getUserRoles, let currentGrants = authenticator(token, endpoint) {
                     grants = currentGrants
                     if grants.isEmpty {
-                        return .redirect("/", nil)
+                        return HttpResponse().redirect(to: "/")
+                            .status(.redirect)
+                            .header("Location", "/")
+                            .body("Redirecting...")
+                            .clearCookie(name: "auth")
                     }
                 } else {
-                    return .redirect("/", nil)
+                    return HttpResponse().redirect(to: "/")
+                        .status(.redirect)
+                        .header("Location", "/")
+                        .body("Redirecting...")
+                        .clearCookie(name: "auth")
                 }
             }
             
@@ -69,7 +75,7 @@ public class WSwiftServer {
                     if permissions.isEmpty == false {
                         // get the authenticated permissions/grants
                         if grants.containsAny(permissions) == false {
-                            return .forbidden(.text("You do not have permission to perform this action."))
+                            return HttpResponse().status(.forbidden).body("You do not have permission to perform this action.")
                         }
                     }
                 }
@@ -78,7 +84,7 @@ public class WSwiftServer {
                     if permissions.isEmpty == false {
                         // get the authenticated permissions/grants
                         if grants.containsAny(permissions) == false {
-                            return .forbidden(.text("You do not have permission to perform this action."))
+                            return HttpResponse().status(.forbidden).body("You do not have permission to perform this action.")
                         }
                     }
                 }
@@ -88,8 +94,8 @@ public class WSwiftServer {
             endpoint.request = request
             
             // extract any values from the request and put them into the web data object
-            endpoint.data.consume(request.queryparams)
-            endpoint.data.consume(request.headers)
+            endpoint.data.consume(request.head.queryParams)
+            endpoint.data.consume(request.head.headerMap)
             endpoint.data.consume(request.body)
             endpoint.ephemeralData["user_roles"] = grants
             
@@ -212,22 +218,12 @@ public class WSwiftServer {
                     switch action {
                         case .Content:
                             response = endpoint.content()
-                        case .View:
-                            response = endpoint.view()
-                        case .Modify:
-                            response = endpoint.modify()
-                        case .New:
-                            response = endpoint.new()
-                        case .Save:
-                            response = endpoint.save()
-                        case .Delete:
-                            response = endpoint.delete()
-                        case .Raw:
-                            response = endpoint.raw()
+                        case .Persist:
+                            response = endpoint.persist()
                     }
                 } else {
                     // we don't know what to do with this endpoint, so return not found
-                    return .notFound
+                    return HttpResponse().status(.notFound)
                 }
                 
                 // if we have a response, return it
@@ -238,26 +234,21 @@ public class WSwiftServer {
                     // build the html response from the response object
                     if endpoint is WebContent {
                         let pageContent = endpoint.renderWebPage()
-                        return HttpResponse.ok(.html(pageContent), endpoint.authenticationIdentifier ?? endpoint.newAuthenticationIdentifier)
+                        return HttpResponse().status(.ok).content(.html).body(pageContent).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? "", path: "/", domain: nil, maxAge: nil, expires: endpoint.sessionExpiry, httpOnly: true, secure: false, sameSite: "Lax")
                     }
                 } else if let response = response as? Codable {
-                    return HttpResponse.ok(.json(response), endpoint.authenticationIdentifier ?? endpoint.authenticationIdentifier)
+                    return HttpResponse().status(.ok).content(.json).body(json: response, options: []).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? "", path: "/", domain: nil, maxAge: nil, expires: endpoint.sessionExpiry, httpOnly: true, secure: false, sameSite: "Lax")
                 }
                 
-                return .notFound
+                return HttpResponse().status(.notFound)
                 
             }
             
-            return .notFound
+            return HttpResponse().status(.notFound)
             
         }
         
-        svr.get[path] = callback
-        svr.post[path] = callback
-        svr.delete[path] = callback
-        svr.patch[path] = callback
-        svr.options[path] = callback
-        svr.head[path] = callback
+        svr.addRoute(path, handler: callback)
         print("Registered endpoint \(newEndpoint) at path \(path)")
         
         
@@ -282,20 +273,29 @@ public class WSwiftServer {
     }
     
     // instance vars
-    private var port: UInt16
-    private var svr: HttpServer
-    
+    private var svr: HTTPServer!
     
     // action blocks
     public init(port: Int, bindAddressv4: String? = nil) {
         
-        self.port = UInt16(port)
-        self.svr = HttpServer()
-        #if os(OSX)
-        self.svr.listenAddressIPv4 = bindAddressv4 ?? "127.0.0.1"
-        #endif
-        try? self.svr.start(self.port, forceIPv4: true, priority: .userInteractive)
+        var config = HTTPServer.Config()
+        config.port = UInt16(port)
+
+        self.svr = HTTPServer(config: config, onRequestHead: { head in
+            return .accept
+        }, onBeforeBody: { head in
+            return .accept
+        }, handler: { request in
+            
+            if let handler = self.svr.routes[request.head.uri] {
+                return handler(request)
+            }
+            
+            return HttpResponse().status(.notFound).body("No endpoints configured.")
+        })
         
+        try? svr.start()
+
     }
     
 }

@@ -456,12 +456,7 @@ public protocol WebContent {
     
     // default calls for events
     func content() -> Any?
-    func view() -> Any?
-    func delete() -> Any?
-    func modify() -> Any?
-    func save() -> Any?
-    func new() -> Any?
-    func raw() -> Any?
+    func persist() -> Any?
     func redirect(_ path: String) -> HttpResponse
     func authenticateSession(token: String, expiry: Date?)
     func deauthenticateSession()
@@ -514,7 +509,10 @@ open class CoreWebEndpoint {
     public required init() {}
     
     public var data: WebData = WebData()
-    public var request: HttpRequest = HttpRequest()
+    public var request: HttpRequest = HttpRequest(
+        head: HttpRequestHead(method: .GET, uri: "/", version: "HTTP/1.1", headers: []),
+        body: .none
+    )
     
     // session data
     public var ephemeralData: [String : Any?] = [:]
@@ -524,7 +522,7 @@ open class CoreWebEndpoint {
     internal var headAttributes: [WebCoreHeadElement] = []
     
     public func redirect(_ path: String) -> HttpResponse {
-        return HttpResponse.redirect(path, newAuthenticationIdentifier ?? authenticationIdentifier)
+        return HttpResponse().status(.redirect).header("Location", path).setCookie(name: "auth_token", value: newAuthenticationIdentifier ?? authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: nil, expires: sessionExpiry, httpOnly: true, secure: true, sameSite: "Lax")
     }
     
     public func authenticateSession(token: String, expiry: Date? = nil) {
@@ -545,31 +543,11 @@ open class CoreWebEndpoint {
     
     // default content methods
     open func content() -> Any? {
-        return HttpResponse.notFound
+        return HttpResponse().status(.notFound)
     }
     
-    open func view() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    open func delete() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    open func modify() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    open func save() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    open func new() -> Any? {
-        return HttpResponse.notFound
-    }
-    
-    open func raw() -> Any? {
-        return HttpResponse.notFound
+    open func persist() -> Any? {
+        return HttpResponse().status(.notFound)
     }
     
 }
@@ -587,7 +565,7 @@ class Test : CoreWebEndpoint, WebEndpoint, WebContent {
     var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     
     override func content() -> Any? {
-        return HttpResponse.ok(.text("hello, test"), nil)
+        return HttpResponse().status(.ok).content(.text).body("Hello, World!")
     }
       
     func acceptedRoles(for action: WebRequestActivity) -> [String]? {

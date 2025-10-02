@@ -14,9 +14,9 @@ class ControlsAPI : CoreWebEndpoint, WebEndpoint, WebApiEndpoint {
         // This is a test API endpoint that returns a simple message
         if let request = data.file("files[]") {
             print(request.filename ?? "")
-            return HttpResponse.accepted
+            return HttpResponse().status(.accepted)
         }
-        return HttpResponse.internalServerError
+        return HttpResponse().status(.internalError)
     }
     
     func acceptedRoles() -> [String]? {

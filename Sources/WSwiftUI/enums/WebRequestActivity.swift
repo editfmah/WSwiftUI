@@ -27,13 +27,8 @@ internal extension [String] {
 
 public enum WebRequestActivity : String, Codable {
     
-    case View = "view"
-    case Modify = "modify"
-    case New = "new"
-    case Save = "save"
     case Content = "content"
-    case Delete = "delete"
-    case Raw = "raw"
+    case Persist = "persist"
     
     static func from(string: String, `default`: WebRequestActivity? = nil) -> WebRequestActivity {
         return WebRequestActivity.init(rawValue: string) ?? `default` ?? .Content
@@ -43,26 +38,21 @@ public enum WebRequestActivity : String, Codable {
         
         var action: WebRequestActivity = .Content
         
-        switch request.method.lowercased() {
-            case "get":
+        switch request.head.method {
+            case .GET:
                 action = .Content
-            case "post":
-                action = .Save
-            case "put":
-                action = .Save
-            case "delete":
-                action = .Delete
-            case "patch":
-                action = .Modify
-            case "head":
+            case .POST:
+                action = .Persist
+            case .PUT:
+                action = .Persist
+            case .DELETE:
+                action = .Persist
+            case .PATCH:
+                action = .Persist
+            case .HEAD:
                 action = .Content
             default:
                 action = .Content
-        }
-        
-        // now see if these are overridden with a query param
-        if let specified = request.queryparams["action"] {
-            return WebRequestActivity.from(string: specified, default: action)
         }
         
         return action
