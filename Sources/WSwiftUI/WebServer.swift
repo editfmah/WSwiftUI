@@ -54,16 +54,10 @@ public class WSwiftServer {
                     grants = currentGrants
                     if grants.isEmpty {
                         return HttpResponse().redirect(to: "/")
-                            .status(.redirect)
-                            .header("Location", "/")
-                            .body("Redirecting...")
                             .clearCookie(name: "auth")
                     }
                 } else {
                     return HttpResponse().redirect(to: "/")
-                        .status(.redirect)
-                        .header("Location", "/")
-                        .body("Redirecting...")
                         .clearCookie(name: "auth")
                 }
             }
