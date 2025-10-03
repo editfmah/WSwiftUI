@@ -8,6 +8,11 @@
 // Swift 6, macOS & Linux (no external deps)
 
 import Foundation
+#if os(Linux)
+import Glibc
+#else
+import Darwin
+#endif
 
 // MARK: - Errors
 
@@ -388,24 +393,30 @@ public final class HTTPServer: @unchecked Sendable {
     }
     
     public func start() throws {
-        listenFD = socket(AF_INET, Int32(SOCK_STREAM), 0)
+#if os(Linux)
+        let sockType = CInt(SOCK_STREAM.rawValue)
+#else
+        let sockType = CInt(SOCK_STREAM)
+#endif
+        listenFD = socket(AF_INET, sockType, 0)
         guard listenFD >= 0 else { throw Err.socket(errnoString("socket")) }
         
         var yes: Int32 = 1
-        _ = setsockopt(listenFD, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout.size(ofValue: yes)))
-        _ = setsockopt(listenFD, IPPROTO_TCP, TCP_NODELAY, &yes, socklen_t(MemoryLayout.size(ofValue: yes)))
+        _ = setsockopt(listenFD, CInt(SOL_SOCKET), CInt(SO_REUSEADDR), &yes, socklen_t(MemoryLayout.size(ofValue: yes)))
+        _ = setsockopt(listenFD, CInt(IPPROTO_TCP), CInt(TCP_NODELAY), &yes, socklen_t(MemoryLayout.size(ofValue: yes)))
         
         var addr = sockaddr_in()
         addr.sin_family = sa_family_t(AF_INET)
         addr.sin_port = cfg.port.bigEndian
-        addr.sin_addr = in_addr(s_addr: inet_addr(cfg.host))
+        let saddr = cfg.host.withCString { inet_addr($0) }
+        addr.sin_addr = in_addr(s_addr: saddr)
         let bindOK = withUnsafePointer(to: &addr) {
             $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { ptr in
                 bind(listenFD, ptr, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
         guard bindOK == 0 else { throw Err.bind(errnoString("bind")) }
-        guard listen(listenFD, SOMAXCONN) == 0 else { throw Err.listen(errnoString("listen")) }
+        guard listen(listenFD, CInt(SOMAXCONN)) == 0 else { throw Err.listen(errnoString("listen")) }
         
         acceptQueue.async { [weak self] in
             self?.acceptLoop()
@@ -434,7 +445,7 @@ public final class HTTPServer: @unchecked Sendable {
     private func handleConnection(fd: Int32) {
         defer { close(fd) }
         var tv = timeval(tv_sec: Int(cfg.recvTimeoutSeconds), tv_usec: 0)
-        _ = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout.size(ofValue: tv)))
+        _ = setsockopt(fd, CInt(SOL_SOCKET), CInt(SO_RCVTIMEO), &tv, socklen_t(MemoryLayout.size(ofValue: tv)))
         
         do {
             let head = try readHead(fd: fd)
