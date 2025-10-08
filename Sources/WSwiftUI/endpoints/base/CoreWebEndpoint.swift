@@ -574,3 +574,69 @@ class Test : CoreWebEndpoint, WebEndpoint, WebContent {
     }
     
 }
+
+
+// MARK: - CoreWebsocketEndpoint
+
+open class CoreWebsocketEndpoint: CoreWebEndpoint, @unchecked Sendable {
+    
+    public required init() {
+        super.init()
+    }
+
+    // Auth requirements default: unauthenticated
+    open var authenticationRequired: [WebAuthenticationStatus] { get { [.unauthenticated] } set { /* ignored in base */ } }
+
+    // Lifecycle hooks
+    open func onOpen(connection: WebSocketConnection, request: HttpRequest) {}
+    open func onTick(connection: WebSocketConnection) {}
+    open func onClose(connection: WebSocketConnection, code: UInt16?, reason: String?) {}
+
+    // Frame handler: return frames to send back, or nil to send nothing
+    open func onFrame(connection: WebSocketConnection, frame: WebSocketFrame) -> [WebSocketFrame]? {
+        // Default: echo text frames
+        if frame.opcode == .text, let s = String(data: frame.payload, encoding: .utf8) {
+            let reply = WebSocketFrame(fin: true, opcode: .text, payload: Data("Echo: \(s)".utf8))
+            return [reply]
+        }
+        return nil
+    }
+
+    private var tickTimer: DispatchSourceTimer?
+
+    // Starts the WebSocket connection loop. Caller owns the fd lifecycle.
+    public func startWebSocket(_ upgrade: WebSocketUpgrade) {
+        let conn = WebSocketConnection(fd: upgrade.socketFD)
+        self.request = HttpRequest(head: self.request.head, body: self.request.body) // keep initial request context
+        self.onOpen(connection: conn, request: self.request)
+
+        // Simple periodic tick (60Hz default). Override `onTick` in subclass.
+        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
+        timer.schedule(deadline: .now() + .milliseconds(16), repeating: .milliseconds(16))
+        timer.setEventHandler { [weak self] in
+            guard let self = self else { return }
+            self.onTick(connection: conn)
+        }
+        self.tickTimer = timer
+        timer.resume()
+
+        // Frame loop
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            do {
+                try conn.run { [weak self] frame in
+                    guard let self = self else { return nil }
+                    return self.onFrame(connection: conn, frame: frame)
+                }
+                self.tickTimer?.cancel()
+                self.tickTimer = nil
+                self.onClose(connection: conn, code: nil, reason: nil)
+            } catch {
+                self.tickTimer?.cancel()
+                self.tickTimer = nil
+                self.onClose(connection: conn, code: nil, reason: String(describing: error))
+            }
+        }
+    }
+}
+

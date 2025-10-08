@@ -1,4 +1,5 @@
 import Foundation
+import Dispatch
 
 private extension HttpRequest {
     var authenticationToken: String? {
@@ -246,6 +247,44 @@ public class WSwiftServer {
         print("Registered endpoint \(newEndpoint) at path \(path)")
         
         
+    }
+    
+    public func registerWebSocket(_ newEndpoint: CoreWebsocketEndpoint) {
+        let instance = newEndpoint.create()
+        // compute path from controller/method if available, otherwise default
+        let path: String
+        if let endpointWithPath = instance as? WebEndpoint {
+            path = endpointWithPath.path
+        } else {
+            path = "/ws"
+        }
+
+        let callback: ((HttpRequest) -> HttpResponse) = { [weak self] request in
+            guard let self = self else { return HttpResponse().status(.serviceUnavailable) }
+            // Only proceed for websocket upgrade requests
+            switch request.kind {
+            case .websocket(let upgrade):
+                // Create long-lived endpoint instance
+                let wsEndpoint = newEndpoint.create()
+                wsEndpoint.request = request
+                // Select a protocol if needed
+                let chosenProto = upgrade.protocols.first
+                // Accept handshake
+                let response = HttpResponse().acceptWebSocket(key: upgrade.key, protocol: chosenProto)
+
+                // After the HTTP server writes 101, it will not close the fd; we launch the loop
+                DispatchQueue.global(qos: .userInitiated).async {
+                    wsEndpoint.startWebSocket(upgrade)
+                }
+
+                return response
+            case .http:
+                return HttpResponse().status(.badRequest).body("Expected WebSocket upgrade")
+            }
+        }
+
+        svr.addRoute(path, handler: callback)
+        print("Registered WebSocket endpoint \(newEndpoint) at path \(path)")
     }
     
     public func unregister(_ endpoint: WebEndpoint) {

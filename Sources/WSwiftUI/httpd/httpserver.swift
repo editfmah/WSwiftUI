@@ -100,6 +100,7 @@ public struct HttpStatus: Equatable, Hashable, Sendable {
     public static let expectationFailed  = HttpStatus(417, "Expectation Failed")
     public static let internalError      = HttpStatus(500, "Internal Server Error")
     public static let serviceUnavailable = HttpStatus(503, "Service Unavailable")
+    public static let switchingProtocols = HttpStatus(101, "Switching Protocols")
 }
 
 
@@ -107,6 +108,19 @@ public enum HttpBody {
     case none
     case inMemory(Data)
     case onDisk(url: URL, size: Int)
+}
+
+public enum RequestKind: Sendable {
+    case http
+    case websocket(WebSocketUpgrade)
+}
+
+public struct WebSocketUpgrade: Sendable {
+    public let key: String
+    public let protocols: [String]
+    public let version: Int?
+    public let extensions: String?
+    public let socketFD: Int32
 }
 
 public struct HttpRequestHead {
@@ -165,10 +179,14 @@ public struct HttpRequestHead {
 public final class HttpRequest {
     public let head: HttpRequestHead
     public let body: HttpBody
-    public init(head: HttpRequestHead, body: HttpBody) {
+    public let kind: RequestKind
+    public init(head: HttpRequestHead, body: HttpBody, kind: RequestKind) {
         self.head = head
         self.body = body
-        
+        self.kind = kind
+    }
+    public convenience init(head: HttpRequestHead, body: HttpBody) {
+        self.init(head: head, body: body, kind: .http)
     }
     public var cookies: [String:String] {
         guard let raw = head.headerMap["cookie"] else { return [:] }
@@ -285,6 +303,16 @@ public final class HttpResponse {
         return self
     }
     
+    @discardableResult public func acceptWebSocket(key: String, protocol proto: String? = nil) -> Self {
+        self.status = .switchingProtocols
+        _ = header("Upgrade", "websocket")
+        _ = header("Connection", "Upgrade")
+        let accept = wsAcceptKey(for: key)
+        _ = header("Sec-WebSocket-Accept", accept)
+        if let proto, !proto.isEmpty { _ = header("Sec-WebSocket-Protocol", proto) }
+        return self
+    }
+    
 }
 
 // MARK: - Gatekeeper decisions
@@ -343,7 +371,358 @@ private func errnoString(_ where_: String) -> String {
 
 private extension Data {
     mutating func appendBytes(_ buffer: UnsafeRawBufferPointer) {
-        self.append(buffer.bindMemory(to: UInt8.self))
+        if let base = buffer.baseAddress {
+            self.append(base.assumingMemoryBound(to: UInt8.self), count: buffer.count)
+        }
+    }
+}
+
+// MARK: - WebSocket helpers
+
+fileprivate func wsAcceptKey(for clientKey: String) -> String {
+    let magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+    let combined = Data((clientKey + magic).utf8)
+    let digest = SHA1.hash(data: combined)
+    return digest.base64EncodedString()
+}
+
+// Minimal SHA1 implementation in pure Swift (no external deps)
+fileprivate struct SHA1 {
+    static func hash(data: Data) -> Data {
+        var message = [UInt8](data)
+        let ml = UInt64(message.count * 8)
+        // append the bit '1' to the message
+        message.append(0x80)
+        // append 0 <= k < 512 bits '0', so that the resulting message length (in bits)
+        // is congruent to 448 (mod 512)
+        while (message.count % 64) != 56 { message.append(0) }
+        // append length as 64-bit big-endian
+        var mlBE = ml.bigEndian
+        withUnsafeBytes(of: &mlBE) { message.append(contentsOf: $0) }
+
+        var h0: UInt32 = 0x67452301
+        var h1: UInt32 = 0xEFCDAB89
+        var h2: UInt32 = 0x98BADCFE
+        var h3: UInt32 = 0x10325476
+        var h4: UInt32 = 0xC3D2E1F0
+
+        var w = [UInt32](repeating: 0, count: 80)
+        for chunkStart in stride(from: 0, to: message.count, by: 64) {
+            // Break chunk into sixteen 32-bit big-endian words w[0..15]
+            for i in 0..<16 {
+                let j = chunkStart + i*4
+                let b0 = UInt32(message[j]) << 24
+                let b1 = UInt32(message[j+1]) << 16
+                let b2 = UInt32(message[j+2]) << 8
+                let b3 = UInt32(message[j+3])
+                w[i] = b0 | b1 | b2 | b3
+            }
+            // Extend to 80 words
+            for i in 16..<80 {
+                let v = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16]
+                w[i] = (v << 1) | (v >> 31)
+            }
+
+            var a = h0
+            var b = h1
+            var c = h2
+            var d = h3
+            var e = h4
+
+            for i in 0..<80 {
+                var f: UInt32 = 0
+                var k: UInt32 = 0
+                switch i {
+                case 0...19:
+                    f = (b & c) | ((~b) & d)
+                    k = 0x5A827999
+                case 20...39:
+                    f = b ^ c ^ d
+                    k = 0x6ED9EBA1
+                case 40...59:
+                    f = (b & c) | (b & d) | (c & d)
+                    k = 0x8F1BBCDC
+                default:
+                    f = b ^ c ^ d
+                    k = 0xCA62C1D6
+                }
+                let temp = ((a << 5) | (a >> 27)) &+ f &+ e &+ k &+ w[i]
+                e = d
+                d = c
+                c = (b << 30) | (b >> 2)
+                b = a
+                a = temp
+            }
+
+            h0 = h0 &+ a
+            h1 = h1 &+ b
+            h2 = h2 &+ c
+            h3 = h3 &+ d
+            h4 = h4 &+ e
+        }
+
+        var digest = Data()
+        for h in [h0, h1, h2, h3, h4] {
+            var be = h.bigEndian
+            withUnsafeBytes(of: &be) { digest.appendBytes($0) }
+        }
+        return digest
+    }
+}
+
+// MARK: - WebSocket framing & connection
+
+public enum WebSocketOpcode: UInt8, Sendable {
+    case continuation = 0x0
+    case text        = 0x1
+    case binary      = 0x2
+    // 0x3-0x7 reserved
+    case close       = 0x8
+    case ping        = 0x9
+    case pong        = 0xA
+    // 0xB-0xF reserved
+}
+
+public struct WebSocketFrame: Sendable {
+    public var fin: Bool
+    public var opcode: WebSocketOpcode
+    public var payload: Data
+    public var maskingKey: UInt32? // network-order key if present
+
+    public init(fin: Bool, opcode: WebSocketOpcode, payload: Data = Data(), maskingKey: UInt32? = nil) {
+        self.fin = fin
+        self.opcode = opcode
+        self.payload = payload
+        self.maskingKey = maskingKey
+    }
+}
+
+public final class WebSocketConnection: @unchecked Sendable {
+    public let fd: Int32
+    private let writeLock = NSLock()
+
+    public init(fd: Int32) {
+        self.fd = fd
+    }
+
+    deinit {
+        // no implicit close; caller owns lifecycle
+    }
+
+    // MARK: - I/O primitives
+
+    private func readExact(_ count: Int) throws -> Data {
+        var remaining = count
+        var out = Data()
+        out.reserveCapacity(count)
+        var buf = [UInt8](repeating: 0, count: min(64 * 1024, max(1024, count)))
+        while remaining > 0 {
+            let toRead = min(buf.count, remaining)
+            let r = buf.withUnsafeMutableBytes { p in
+                read(fd, p.baseAddress, toRead)
+            }
+            if r == 0 { throw Err.closed }
+            if r < 0 { throw Err.io(errnoString("ws read")) }
+            out.append(contentsOf: buf[0..<r])
+            remaining -= r
+        }
+        return out
+    }
+
+    private func writeAll(_ data: Data) throws {
+        try data.withUnsafeBytes { (p: UnsafeRawBufferPointer) in
+            var base = p.baseAddress!
+            var remaining = p.count
+            while remaining > 0 {
+                let w = write(fd, base, remaining)
+                if w < 0 { throw Err.io(errnoString("ws write")) }
+                remaining -= w
+                base = base.advanced(by: w)
+            }
+        }
+    }
+
+    // MARK: - Framing
+
+    private func unmask(_ data: inout Data, key: UInt32) {
+        var k = key
+        data.withUnsafeMutableBytes { (p: UnsafeMutableRawBufferPointer) in
+            guard let base = p.baseAddress else { return }
+            var ptr = base.assumingMemoryBound(to: UInt8.self)
+            let count = p.count
+            for i in 0..<count {
+                let j = i & 3
+                let shift = (3 - j) * 8
+                let maskByte = UInt8((k >> shift) & 0xFF)
+                ptr[i] ^= maskByte
+            }
+        }
+    }
+
+    private func serialize(frame: WebSocketFrame, mask: Bool = false) -> Data {
+        var out = Data()
+        let finBit: UInt8 = frame.fin ? 0x80 : 0x00
+        let opcodeNibble: UInt8 = frame.opcode.rawValue & 0x0F
+        var b0 = finBit | opcodeNibble
+        withUnsafeBytes(of: &b0) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 1) }
+
+        var payload = frame.payload
+        var maskBit: UInt8 = mask ? 0x80 : 0x00
+        let len = payload.count
+        if len <= 125 {
+            var bLen = maskBit | UInt8(len)
+            withUnsafeBytes(of: &bLen) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 1) }
+        } else if len <= 0xFFFF {
+            var b126 = maskBit | 126
+            withUnsafeBytes(of: &b126) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 1) }
+            var be = UInt16(len).bigEndian
+            withUnsafeBytes(of: &be) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 2) }
+        } else {
+            var b127 = maskBit | 127
+            withUnsafeBytes(of: &b127) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 1) }
+            var be = UInt64(len).bigEndian
+            withUnsafeBytes(of: &be) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 8) }
+        }
+
+        var maskingKey: UInt32 = 0
+        if mask {
+            maskingKey = frame.maskingKey ?? UInt32.random(in: UInt32.min...UInt32.max)
+            var be = maskingKey.bigEndian
+            withUnsafeBytes(of: &be) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 4) }
+            // apply masking to payload copy
+            var copy = payload
+            unmask(&copy, key: maskingKey)
+            out.append(copy)
+        } else {
+            out.append(payload)
+        }
+
+        return out
+    }
+
+    // Reads a single raw frame (may be a fragment)
+    private func readFrame() throws -> WebSocketFrame {
+        let header = try readExact(2)
+        let b0 = header[header.startIndex]
+        let b1 = header[header.startIndex.advanced(by: 1)]
+        let fin = (b0 & 0x80) != 0
+        let opcodeRaw = b0 & 0x0F
+        guard let opcode = WebSocketOpcode(rawValue: opcodeRaw) else { throw Err.parse("ws opcode") }
+        let masked = (b1 & 0x80) != 0
+        var length = Int(b1 & 0x7F)
+        if length == 126 {
+            let ext = try readExact(2)
+            let val = ext.withUnsafeBytes { $0.load(as: UInt16.self) }
+            length = Int(UInt16(bigEndian: val))
+        } else if length == 127 {
+            let ext = try readExact(8)
+            let val = ext.withUnsafeBytes { $0.load(as: UInt64.self) }
+            let be = UInt64(bigEndian: val)
+            // clamp to Int
+            if be > UInt64(Int.max) { throw Err.tooLarge }
+            length = Int(be)
+        }
+        var maskingKey: UInt32? = nil
+        if masked {
+            let keyData = try readExact(4)
+            let k = keyData.withUnsafeBytes { $0.load(as: UInt32.self) }
+            maskingKey = UInt32(bigEndian: k)
+        }
+        var payload = length > 0 ? try readExact(length) : Data()
+        if let key = maskingKey {
+            unmask(&payload, key: key)
+        }
+        return WebSocketFrame(fin: fin, opcode: opcode, payload: payload, maskingKey: maskingKey)
+    }
+
+    // Reads a complete message (handles fragmentation for text/binary)
+    public func readMessage() throws -> WebSocketFrame {
+        var first = try readFrame()
+        switch first.opcode {
+        case .text, .binary:
+            if first.fin { return first }
+            // accumulate continuation frames
+            var data = first.payload
+            while true {
+                let cont = try readFrame()
+                guard cont.opcode == .continuation else { throw Err.parse("ws continuation expected") }
+                data.append(cont.payload)
+                if cont.fin { break }
+            }
+            return WebSocketFrame(fin: true, opcode: first.opcode, payload: data, maskingKey: nil)
+        case .continuation:
+            throw Err.parse("unexpected continuation start")
+        case .ping, .pong, .close:
+            return first
+        }
+    }
+
+    // MARK: - Public send helpers (servers do not mask)
+
+    public func send(frame: WebSocketFrame) throws {
+        // As a server, do not mask outgoing frames per RFC6455
+        let data = serialize(frame: frame, mask: false)
+        try writeAll(data)
+    }
+
+    public func sendText(_ text: String) throws {
+        try send(frame: WebSocketFrame(fin: true, opcode: .text, payload: Data(text.utf8)))
+    }
+
+    public func sendBinary(_ data: Data) throws {
+        try send(frame: WebSocketFrame(fin: true, opcode: .binary, payload: data))
+    }
+
+    public func sendPing(_ data: Data = Data()) throws {
+        let payload = data.prefix(125) // control frames max 125
+        try send(frame: WebSocketFrame(fin: true, opcode: .ping, payload: payload))
+    }
+
+    public func sendPong(_ data: Data = Data()) throws {
+        let payload = data.prefix(125)
+        try send(frame: WebSocketFrame(fin: true, opcode: .pong, payload: payload))
+    }
+
+    public func close(code: UInt16 = 1000, reason: String = "") throws {
+        var payload = Data()
+        var be = code.bigEndian
+        withUnsafeBytes(of: &be) { payload.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 2) }
+        payload.append(reason.data(using: .utf8) ?? Data())
+        payload = payload.prefix(125)
+        try send(frame: WebSocketFrame(fin: true, opcode: .close, payload: payload))
+    }
+
+    // MARK: - Run loop
+
+    public typealias FrameHandler = @Sendable (WebSocketFrame) -> [WebSocketFrame]?
+
+    // Runs a blocking loop reading frames and invoking the handler. Returns on close or error.
+    public func run(handle: FrameHandler) throws {
+        loop: while true {
+            let frame = try readMessage()
+            switch frame.opcode {
+            case .ping:
+                // if handler returns nothing, auto-pong
+                if let responses = handle(frame) {
+                    for r in responses { try send(frame: r) }
+                } else {
+                    try sendPong(frame.payload)
+                }
+            case .close:
+                // echo close if handler doesn't override
+                if let responses = handle(frame) {
+                    for r in responses { try send(frame: r) }
+                } else {
+                    // attempt to echo and then break
+                    try send(frame: WebSocketFrame(fin: true, opcode: .close, payload: frame.payload))
+                }
+                break loop
+            default:
+                if let responses = handle(frame) {
+                    for r in responses { try send(frame: r) }
+                }
+            }
+        }
     }
 }
 
@@ -443,12 +822,30 @@ public final class HTTPServer: @unchecked Sendable {
     }
     
     private func handleConnection(fd: Int32) {
-        defer { close(fd) }
+        var shouldClose = true
+        defer { if shouldClose { close(fd) } }
         var tv = timeval(tv_sec: Int(cfg.recvTimeoutSeconds), tv_usec: 0)
         _ = setsockopt(fd, CInt(SOL_SOCKET), CInt(SO_RCVTIMEO), &tv, socklen_t(MemoryLayout.size(ofValue: tv)))
         
         do {
             let head = try readHead(fd: fd)
+            
+            let hm = head.headerMap
+            let connectionHeader = hm["connection"]?.lowercased() ?? ""
+            let upgradeHeader = hm["upgrade"]?.lowercased() ?? ""
+            var reqKind: RequestKind = .http
+            if connectionHeader.contains("upgrade") && upgradeHeader == "websocket" {
+                if let key = hm["sec-websocket-key"] {
+                    let protos = (hm["sec-websocket-protocol"] ?? "")
+                        .split(separator: ",")
+                        .map { $0.trimmingCharacters(in: .whitespaces) }
+                        .filter { !$0.isEmpty }
+                    let ver = Int(hm["sec-websocket-version"] ?? "")
+                    let ext = hm["sec-websocket-extensions"]
+                    reqKind = .websocket(WebSocketUpgrade(key: key, protocols: protos, version: ver, extensions: ext, socketFD: fd))
+                }
+            }
+            
             // Gate 1 (immediately after headers)
             switch onHead(head) {
                 case .accept:
@@ -469,17 +866,26 @@ public final class HTTPServer: @unchecked Sendable {
             
             let body = try readBody(fd: fd, head: head)
             
-            let req = HttpRequest(head: head, body: body)
+            let req = HttpRequest(head: head, body: body, kind: reqKind)
             var resp = handler(req)
-            // Ensure Content-Length
-            if resp.headers.first(where: { $0.0.caseInsensitiveCompare("Content-Length") == .orderedSame }) == nil {
-                resp.header("Content-Length", "\(resp.bodyBytes.count)")
+            // Ensure Content-Length, skip for 101 Switching Protocols
+            if resp.status.code != 101 {
+                if resp.headers.first(where: { $0.0.caseInsensitiveCompare("Content-Length") == .orderedSame }) == nil {
+                    resp.header("Content-Length", "\(resp.bodyBytes.count)")
+                }
             }
-            // Default Connection: close
-            if resp.headers.first(where: { $0.0.caseInsensitiveCompare("Connection") == .orderedSame }) == nil {
-                resp.header("Connection", "close")
+            // Default Connection: close, skip for 101 Switching Protocols
+            if resp.status.code != 101 {
+                if resp.headers.first(where: { $0.0.caseInsensitiveCompare("Connection") == .orderedSame }) == nil {
+                    resp.header("Connection", "close")
+                }
             }
             try writeResponse(fd: fd, resp: resp)
+            
+            if resp.status.code == 101 {
+                shouldClose = false
+                return
+            }
         } catch let e as Err {
             // best-effort 400/413/500 depending
             let resp: HttpResponse
@@ -769,7 +1175,7 @@ public final class HTTPServer: @unchecked Sendable {
         }
         head += "\r\n"
         try writeAll(fd: fd, Data(head.utf8))
-        if resp.status.code != 204 && resp.status.code != 304 {
+        if resp.status.code != 204 && resp.status.code != 304 && resp.status.code != 101 {
             if let url = resp.bodyFileUrl {
                 if let range = resp.bodyFileHandleRange {
                     let handle = try FileHandle(forReadingFrom: url)

@@ -13,6 +13,7 @@ server.register(HomePage())
 server.register(PurposePage())
 server.register(ControlsPage())
 server.register(ControlsAPI())
+server.registerWebSocket(WebsocketEndpointExample())
 
 server.onAcceptedRequest { endpoint in
     
