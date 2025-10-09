@@ -583,6 +583,9 @@ open class CoreWebsocketEndpoint: CoreWebEndpoint, @unchecked Sendable {
     public required init() {
         super.init()
     }
+    
+    // Tick interval for onTick callbacks (seconds). Set to <= 0 to disable ticking.
+    open var tickInterval: TimeInterval = 1.0
 
     // Auth requirements default: unauthenticated
     open var authenticationRequired: [WebAuthenticationStatus] { get { [.unauthenticated] } set { /* ignored in base */ } }
@@ -607,12 +610,15 @@ open class CoreWebsocketEndpoint: CoreWebEndpoint, @unchecked Sendable {
     // Starts the WebSocket connection loop. Caller owns the fd lifecycle.
     public func startWebSocket(_ upgrade: WebSocketUpgrade) {
         let conn = WebSocketConnection(fd: upgrade.socketFD)
+        conn.endpoint = self
         self.request = HttpRequest(head: self.request.head, body: self.request.body) // keep initial request context
         self.onOpen(connection: conn, request: self.request)
 
-        // Simple periodic tick (60Hz default). Override `onTick` in subclass.
+        // Simple periodic tick using `tickInterval` (default 1s). Override `onTick` in subclass.
         let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
-        timer.schedule(deadline: .now() + .milliseconds(16), repeating: .milliseconds(16))
+        let intervalMs = max(1, Int(self.tickInterval * 1000))
+        timer.schedule(deadline: .now() + .milliseconds(intervalMs),
+                       repeating: .milliseconds(intervalMs))
         timer.setEventHandler { [weak self] in
             guard let self = self else { return }
             self.onTick(connection: conn)

@@ -175,6 +175,12 @@ public enum WebAction {
     case fadeIn(ref: String? = nil, duration: Double)
     case fadeOut(ref: String? = nil, duration: Double)
     case fadeToggle(ref: String? = nil, duration: Double)
+    case script(script: String)
+    
+    // result handling activities
+    case extractJSON(key: String, actions: [WebAction])
+    case extractJSONInto(key: String, into: WebVariableElement)
+    case evaluate(op: Operator,_ true: [WebAction],_ else: [WebAction]?)
     
 }
 
@@ -849,6 +855,114 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
             } else {
                 script += "set\(variableName.md5)('\(to ?? "")');\n"
             }
+        case .extractJSON(key: let key, actions: let actions):
+            // Parse JSON from `result` only (string or object) and expose a new scoped `result` for subsequent actions.
+            let nested = CompileActions(actions, builderId: builderId)
+            script += #"""
+            (function(){
+                var __source = (typeof result !== 'undefined') ? result : null;
+                var __obj = null;
+                try {
+                    if (__source === null || typeof __source === 'undefined') {
+                        __obj = null;
+                    } else if (typeof __source === 'string') {
+                        __obj = JSON.parse(__source);
+                    } else {
+                        // already an object/array
+                        __obj = __source;
+                    }
+                } catch(e) {
+                    __obj = null;
+                }
+
+                // Resolve key path supporting dot and bracket notation (e.g., a.b[0].c)
+                var __extracted = __obj;
+                var __path = "\#(key)";
+                if (__path && typeof __path === 'string' && __path.length > 0) {
+                    var __parts = __path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(function(p){ return p.length > 0; });
+                    for (var __i = 0; __i < __parts.length; __i++) {
+                        var __p = __parts[__i];
+                        if (__extracted != null && Object.prototype.hasOwnProperty.call(__extracted, __p)) {
+                            __extracted = __extracted[__p];
+                        } else if (__extracted != null && typeof __extracted === 'object' && __p in __extracted) {
+                            // fallback for prototype-less checks
+                            __extracted = __extracted[__p];
+                        } else {
+                            __extracted = undefined;
+                            break;
+                        }
+                    }
+                }
+
+                // Shadow `result` within this scope for subsequent compiled actions
+                var result = __extracted;
+
+                // Execute nested actions in the context of this new `result`
+                (function(){
+                    \#(nested)
+                })();
+            })();
+            """#
+        case .extractJSONInto(key: let key, into: let variable):
+            // Extract a value from JSON in `result` and write it into the specified variable.
+            script += #"""
+            (function(){
+                var __source = (typeof result !== 'undefined') ? result : null;
+                var __obj = null;
+                try {
+                    if (__source === null || typeof __source === 'undefined') {
+                        __obj = null;
+                    } else if (typeof __source === 'string') {
+                        __obj = JSON.parse(__source);
+                    } else {
+                        // already an object/array
+                        __obj = __source;
+                    }
+                } catch(e) {
+                    __obj = null;
+                }
+
+                // Resolve key path supporting dot and bracket notation (e.g., a.b[0].c)
+                var __extracted = __obj;
+                var __path = "\#(key)";
+                if (__path && typeof __path === 'string' && __path.length > 0) {
+                    var __parts = __path.replace(/\[(\d+)\]/g, '.$1').split('.').filter(function(p){ return p.length > 0; });
+                    for (var __i = 0; __i < __parts.length; __i++) {
+                        var __p = __parts[__i];
+                        if (__extracted != null && Object.prototype.hasOwnProperty.call(__extracted, __p)) {
+                            __extracted = __extracted[__p];
+                        } else if (__extracted != null && typeof __extracted === 'object' && __p in __extracted) {
+                            // fallback for prototype-less checks
+                            __extracted = __extracted[__p];
+                        } else {
+                            __extracted = undefined;
+                            break;
+                        }
+                    }
+                }
+
+                // Update the specified web variable with the extracted value
+                updateWebVariable\#(variable.builderId)(__extracted);
+            })();
+            """#
+        case .evaluate(op: let op, let ifTrue, let ifFalse):
+            let ifScript = CompileActions(ifTrue, builderId: builderId)
+            let elseScript = ifFalse.map { CompileActions($0, builderId: builderId) }
+            script += """
+            (function(){
+                var __cond = false;
+                try {
+                    __cond = (result \(op.javascriptCondition));
+                } catch (e) {
+                    __cond = false;
+                }
+                if (__cond) {
+            """ + ifScript + """
+                } else {
+            """ + (elseScript ?? "") + """
+                }
+            })();
+            """
         }
     }
     
@@ -875,3 +989,6 @@ public enum ScrollAlignment: String {
     case end
     case nearest
 }
+
+
+

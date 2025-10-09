@@ -498,6 +498,8 @@ public struct WebSocketFrame: Sendable {
 }
 
 public final class WebSocketConnection: @unchecked Sendable {
+    
+    internal var endpoint: CoreWebsocketEndpoint?
     public let fd: Int32
     private let writeLock = NSLock()
 

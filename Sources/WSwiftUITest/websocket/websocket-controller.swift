@@ -15,16 +15,17 @@ class WebsocketEndpointExample : CoreWebsocketEndpoint, WebEndpoint, @unchecked 
     var method: String?
     
     override func onOpen(connection: WebSocketConnection, request: HttpRequest) {
-        
+        print("opened websocket")
     }
     
     override func onFrame(connection: WebSocketConnection, frame: WebSocketFrame) -> [WebSocketFrame]? {
-        
+        print("recieved datagram")
         return nil
     }
     
     override func onTick(connection: WebSocketConnection) {
-        
+        print("onTick sending time")
+        try? connection.sendText("{ \"time\" : \"\(Date())\" }")
     }
     
 }

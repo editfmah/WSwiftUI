@@ -20,7 +20,14 @@ class HomePage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
         
         Template {
             
-            WebSocket(url: "ws://localhost:4242/ws-ping")
+            let currentTime = WString("not set")
+            HStack {
+                Text(currentTime)
+            }
+            
+            WebSocket(url: "/ws-ping", onRecieve: [
+                .extractJSONInto(key: "time", into: currentTime)
+            ])
             
             VStack {
                 
