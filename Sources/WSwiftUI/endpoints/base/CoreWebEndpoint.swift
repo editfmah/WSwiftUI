@@ -523,7 +523,7 @@ open class CoreWebEndpoint {
     
     public func redirect(_ path: String) -> HttpResponse {
         let https = request.head.headerMap["origin"]?.contains("https") ?? false
-        return HttpResponse().redirect(to: path).setCookie(name: "auth", value: newAuthenticationIdentifier ?? authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: nil, expires: sessionExpiry, httpOnly: !https, secure: https, sameSite: "Lax")
+        return HttpResponse().redirect(to: path).setCookie(name: "auth", value: newAuthenticationIdentifier ?? authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: 3600, expires: nil, httpOnly: true, secure: false, sameSite: "Lax")
     }
     
     public func authenticateSession(token: String, expiry: Date? = nil) {

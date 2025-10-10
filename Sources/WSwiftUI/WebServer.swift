@@ -229,10 +229,10 @@ public class WSwiftServer {
                     // build the html response from the response object
                     if endpoint is WebContent {
                         let pageContent = endpoint.renderWebPage()
-                        return HttpResponse().status(.ok).content(.html).body(pageContent).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? "", path: "/", domain: nil, maxAge: nil, expires: endpoint.sessionExpiry, httpOnly: true, secure: false, sameSite: "Lax")
+                        return HttpResponse().status(.ok).content(.html).body(pageContent).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: 3600, expires: nil, httpOnly: true, secure: false, sameSite: "Lax")
                     }
                 } else if let response = response as? Codable {
-                    return HttpResponse().status(.ok).content(.json).body(json: response, options: []).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? "", path: "/", domain: nil, maxAge: nil, expires: endpoint.sessionExpiry, httpOnly: true, secure: false, sameSite: "Lax")
+                    return HttpResponse().status(.ok).content(.json).body(json: response, options: []).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: 3600, expires: nil, httpOnly: true, secure: false, sameSite: "Lax")
                 }
                 
                 return HttpResponse().status(.notFound)
