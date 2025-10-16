@@ -28,4 +28,8 @@ class WebsocketEndpointExample : CoreWebsocketEndpoint, WebEndpoint, @unchecked 
         try? connection.sendText("{ \"time\" : \"\(Date())\" }")
     }
     
+    override func onClose(connection: WebSocketConnection, code: UInt16?, reason: String?) {
+        
+    }
+    
 }

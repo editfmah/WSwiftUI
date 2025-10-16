@@ -45,6 +45,7 @@ public extension CoreWebEndpoint {
                 element.class("form-check-input")
                 element.type("checkbox")
                 element.id("\(element.builderId)")
+                if let varName = value.internalName { element.name(varName) }
                 
                 element.addAttribute(.custom("onChange=\"updateWebVariable\(value.builderId)(this.checked);\""))
                 

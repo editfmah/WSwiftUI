@@ -34,6 +34,14 @@ class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
                 Text("Form input controls:").font(.title)
                 Form(action: self.path) {
                     HStack {
+                        HStack {
+                            let t = WString("opt2").name("toggle_field")
+                            Picker(type: .radio(.horizontal), binding: t) {
+                                Text("Option 1").value("opt1")
+                                Text("Option 2").value("opt2")
+                                Text("Option 3").value("opt3")
+                            }
+                        }
                         VStack {
                             Form {
                                 let wVar = WString("op2").name("name")

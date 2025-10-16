@@ -154,6 +154,7 @@ addCallback\(binding.builderId)(updateVariable\(inp.builderId));
         if value.errorMessage != nil {
             ta.addAttribute(.errorMessage(value.errorMessage!))
         }
+        if let varName = value.internalName { ta.name(varName) }
         ta.class("form-control")
         let id = "\(ta.builderId)"
         ta.id(id)

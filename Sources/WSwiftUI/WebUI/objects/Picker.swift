@@ -83,6 +83,9 @@ public extension CoreWebEndpoint {
                         }
                         addCallback\(binding.builderId)(updateVariable\(el.builderId));
                     """)
+                    if let binding = binding.internalName {
+                        el.name(binding)
+                    }
                 }
                 stack.append(picker)
                 // items go here
