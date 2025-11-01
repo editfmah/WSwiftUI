@@ -175,13 +175,69 @@ public enum WebAction {
     case fadeIn(ref: String? = nil, duration: Double)
     case fadeOut(ref: String? = nil, duration: Double)
     case fadeToggle(ref: String? = nil, duration: Double)
-    case script(script: String)
     
     // result handling activities
     case extractJSON(key: String, actions: [WebAction])
     case extractJSONInto(key: String, into: WebVariableElement)
     case evaluate(op: Operator,_ true: [WebAction],_ else: [WebAction]?)
     
+    case text(ref: String? = nil, _ value: String)
+    case html(ref: String? = nil, _ value: String)
+    case appendHTML(ref: String? = nil, _ html: String)
+    case prependHTML(ref: String? = nil, _ html: String)
+    case setAttribute(ref: String? = nil, name: String, value: String?)
+    case removeAttribute(ref: String? = nil, name: String)
+    case toggleClass(ref: String? = nil, className: String)
+
+    case show(ref: String? = nil)
+    case hide(ref: String? = nil)
+    case enable(ref: String? = nil)
+    case disable(ref: String? = nil)
+    case focus(ref: String? = nil)
+    case blur(ref: String? = nil)
+    case click(ref: String? = nil)
+
+    case setCSSVariable(ref: String? = nil, name: String, value: String)
+    case setStyles(ref: String? = nil, styles: [String: String])
+
+    case animate(ref: String? = nil, keyframes: String, options: String)
+    case addClassFor(ref: String? = nil, className: String, durationMs: Int)
+
+    case localStorageSet(key: String, value: WebVariableElement)
+    case localStorageGet(key: String, into: WebVariableElement)
+    case localStorageRemove(key: String)
+
+    case sessionStorageSet(key: String, value: WebVariableElement)
+    case sessionStorageGet(key: String, into: WebVariableElement)
+    case sessionStorageRemove(key: String)
+
+    case clipboardCopy(_ value: WebVariableElement)
+
+    case get(url: String, onSuccessful: [WebAction]? = nil, onFailed: [WebAction]? = nil, onTimeout: [WebAction]? = nil, resultInto: WebVariableElement? = nil)
+    case download(url: String, filename: String?)
+
+    case reload
+    case historyBack
+    case historyForward
+    case historyPush(url: String, title: String?)
+    case historyReplace(url: String, title: String?)
+    case openNewWindow(url: String, target: String)
+
+    case tooltipShow(ref: String)
+    case tooltipHide(ref: String)
+    case toastShow(ref: String)
+    case toastHide(ref: String)
+    case tabShow(ref: String)
+
+    case delay(seconds: Double, actions: [WebAction])
+    case alert(_ message: String)
+    case confirm(_ message: String, ifYes: [WebAction], ifNo: [WebAction]?)
+
+    case setVariableFromExpression(into: WebVariableElement, expression: String)
+    case regexExtract(source: WebVariableElement, pattern: String, group: Int, into: WebVariableElement)
+
+    case setAria(ref: String? = nil, name: String, value: String)
+    case ariaAnnounce(message: String, politeness: String)
 }
 
 public func CompileActions(_ actions: [WebAction], builderId: String) -> String {
@@ -578,7 +634,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
             if (spinnerElement) {
                 spinnerElement.classList.remove('spinner-border', 'spinner-grow', 'spinner-border-sm', 'spinner-border-lg', 'spinner-grow-sm', 'spinner-grow-lg');
                 spinnerElement.classList.add('\(type.rawValue)');
-                if ('\(size.rawValue)' !== '') {
+                if ('\(size.rawValue)' != '') {
                     spinnerElement.classList.add('\(size.rawValue)');
                 }
                 spinnerElement.style.color = '\(color.rgba)';
@@ -811,7 +867,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 title: '\(title)',
                 content: '\(content)'
             });
-            popper.show();
+            popover.show();
             """
         case .src(ref: let ref, url: let url):
             if let ref = ref {
@@ -963,6 +1019,169 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 }
             })();
             """
+
+        case .text(let ref, let value):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').textContent = `\(value)`;\n"
+            } else {
+                script += "\(builderId).textContent = `\(value)`;\n"
+            }
+        case .html(let ref, let value):
+            if let ref = ref {
+                script += "document.getElementById('\(ref)').innerHTML = `\(value)`;\n"
+            } else {
+                script += "\(builderId).innerHTML = `\(value)`;\n"
+            }
+        case .appendHTML(let ref, let html):
+            let target = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(target).insertAdjacentHTML('beforeend', `\(html)`);\n"
+        case .prependHTML(let ref, let html):
+            let target2 = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(target2).insertAdjacentHTML('afterbegin', `\(html)`);\n"
+        case .setAttribute(let ref, let name, let value):
+            let tgt = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            if let value = value {
+                script += "\(tgt).setAttribute('\(name)', '\(value)');\n"
+            } else {
+                script += "\(tgt).setAttribute('\(name)', '');\n"
+            }
+        case .removeAttribute(let ref, let name):
+            let tgt2 = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tgt2).removeAttribute('\(name)');\n"
+        case .toggleClass(let ref, let className):
+            let tgt3 = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tgt3).classList.toggle('\(className)');\n"
+
+        case .show(let ref):
+            let tShow = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tShow).style.display = '';\n"
+        case .hide(let ref):
+            let tHide = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tHide).style.display = 'none';\n"
+        case .enable(let ref):
+            let tEnable = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tEnable).removeAttribute('disabled');\n"
+        case .disable(let ref):
+            let tDisable = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tDisable).setAttribute('disabled','disabled');\n"
+        case .focus(let ref):
+            let tFocus = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "(function(el){ if(el&&el.focus) el.focus(); })(\(tFocus));\n"
+        case .blur(let ref):
+            let tBlur = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "(function(el){ if(el&&el.blur) el.blur(); })(\(tBlur));\n"
+        case .click(let ref):
+            let tClick = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "(function(el){ if(el&&el.click) el.click(); })(\(tClick));\n"
+
+        case .setCSSVariable(let ref, let name, let value):
+            let tCSS = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tCSS).style.setProperty('\(name)', '\(value)');\n"
+        case .setStyles(let ref, let styles):
+            let tStyles = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            let objLiteral = "{" + styles.map { "'\($0.key)': '\($0.value)'" }.joined(separator: ", ") + "}"
+            script += "(function(el, styles){ if(!el) return; for (var k in styles){ if (Object.prototype.hasOwnProperty.call(styles,k)) { el.style[k] = styles[k]; } } })(\(tStyles), \(objLiteral));\n"
+
+        case .animate(let ref, let keyframes, let options):
+            let tAnim = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "(function(el){ if(!el||!el.animate) return; el.animate(\(keyframes), \(options)); })(\(tAnim));\n"
+        case .addClassFor(let ref, let className, let durationMs):
+            let tACF = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "(function(el){ if(!el) return; el.classList.add('\(className)'); setTimeout(function(){ el.classList.remove('\(className)'); }, \(durationMs)); })(\(tACF));\n"
+
+        case .localStorageSet(let key, let value):
+            script += "localStorage.setItem('\(key)', JSON.stringify(\(value.builderId)));\n"
+        case .localStorageGet(let key, let into):
+            script += "(function(){ var v = localStorage.getItem('\\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
+        case .localStorageRemove(let key):
+            script += "localStorage.removeItem('\(key)');\n"
+
+        case .sessionStorageSet(let key, let value):
+            script += "sessionStorage.setItem('\(key)', JSON.stringify(\(value.builderId)));\n"
+        case .sessionStorageGet(let key, let into):
+            script += "(function(){ var v = sessionStorage.getItem('\\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
+        case .sessionStorageRemove(let key):
+            script += "sessionStorage.removeItem('\(key)');\n"
+
+        case .clipboardCopy(let value):
+            script += "(function(txt){ if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(String(txt)); } else { var ta = document.createElement('textarea'); ta.value = String(txt); document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(e){} document.body.removeChild(ta); } })(\(value.builderId));\n"
+
+        case .get(let url, let onSuccessful, let onFailed, let onTimeout, let resultInto):
+            let gid = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(4)
+            script += "var xhr\(gid) = new XMLHttpRequest();\n"
+            script += "xhr\(gid).open('GET', '\(url)', true);\n"
+            script += "xhr\(gid).withCredentials = true;\n"
+            script += "xhr\(gid).onreadystatechange = function(){\n"
+            script += "  if (xhr\(gid).readyState !== 4) return;\n"
+            script += "  if (xhr\(gid).status >= 200 && xhr\(gid).status < 300) {\n"
+            if let resultInto = resultInto {
+                script += "    \(resultInto.builderId) = xhr\(gid).responseText;\n"
+            }
+            if let onSuccessful = onSuccessful {
+                for a in onSuccessful {
+                    script += CompileActions([a], builderId: builderId)
+                }
+            }
+            script += "  } else {\n"
+            if let onFailed = onFailed {
+                script += CompileActions(onFailed, builderId: builderId)
+            }
+            script += "  }\n";
+            script += "};\n"
+            if let onTimeout = onTimeout {
+                script += "xhr\(gid).ontimeout = function(){\n"
+                script += CompileActions(onTimeout, builderId: builderId)
+                script += "};\n"
+            }
+            script += "xhr\(gid).send();\n"
+
+        case .download(let url, let filename):
+            script += "(function(u,f){ var a = document.createElement('a'); a.href = u; if (f) a.download = f; document.body.appendChild(a); a.click(); document.body.removeChild(a); })(\"\(url)\", \(filename != nil ? "'\(filename!)'" : "null"));\n"
+
+        case .reload:
+            script += "window.location.reload();\n"
+        case .historyBack:
+            script += "window.history.back();\n"
+        case .historyForward:
+            script += "window.history.forward();\n"
+        case .historyPush(let url, let title):
+            script += "window.history.pushState({}, '\(title ?? "")', '\(url)');\n"
+        case .historyReplace(let url, let title):
+            script += "window.history.replaceState({}, '\(title ?? "")', '\(url)');\n"
+        case .openNewWindow(let url, let target):
+            script += "window.open('\(url)', '\(target)');\n"
+
+        case .tooltipShow(let ref):
+            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var tt = bootstrap.Tooltip.getOrCreateInstance(el); tt.show(); })();\n"
+        case .tooltipHide(let ref):
+            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var tt = bootstrap.Tooltip.getOrCreateInstance(el); tt.hide(); })();\n"
+        case .toastShow(let ref):
+            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var toast = bootstrap.Toast.getOrCreateInstance(el); toast.show(); })();\n"
+        case .toastHide(let ref):
+            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var toast = bootstrap.Toast.getOrCreateInstance(el); toast.hide(); })();\n"
+        case .tabShow(let ref):
+            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var tab = new bootstrap.Tab(el); tab.show(); })();\n"
+
+        case .delay(let seconds, let actions):
+            let nested = CompileActions(actions, builderId: builderId)
+            script += "setTimeout(function(){\n\(nested)\n}, \(Int(seconds * 1000)));\n"
+        case .alert(let message):
+            script += "window.alert('\(message)');\n"
+        case .confirm(let message, let ifYes, let ifNo):
+            let yesScript = CompileActions(ifYes, builderId: builderId)
+            let noScript = ifNo.map { CompileActions($0, builderId: builderId) } ?? ""
+            script += "if (window.confirm('\(message)')) {\n\(yesScript)\n} else {\n\(noScript)\n}\n"
+
+        case .setVariableFromExpression(let into, let expression):
+            script += "updateWebVariable\(into.builderId)((function(){ try { return (\(expression)); } catch(e){ return null; } })());\n"
+        case .regexExtract(let source, let pattern, let group, let into):
+            script += "(function(s, re, g){ try { var r = new RegExp(re).exec(String(s)); var v = (r && r.length > g) ? r[g] : null; updateWebVariable\(into.builderId)(v); } catch(e){ updateWebVariable\(into.builderId)(null); } })(\(source.builderId), '\(pattern.replacingOccurrences(of: "\\", with: "\\\\"))', \(group));\n"
+
+        case .setAria(let ref, let name, let value):
+            let tAria = ref.map { "document.getElementById('\($0)')" } ?? builderId
+            script += "\(tAria).setAttribute('\(name)', '\(value)');\n"
+        case .ariaAnnounce(let message, let politeness):
+            script += "(function(msg, politeness){ var lr = document.getElementById('__live_region__'); if(!lr){ lr = document.createElement('div'); lr.id='__live_region__'; lr.setAttribute('aria-live', politeness||'polite'); lr.setAttribute('aria-atomic','true'); lr.style.position='absolute'; lr.style.width='1px'; lr.style.height='1px'; lr.style.overflow='hidden'; lr.style.clip='rect(1px, 1px, 1px, 1px)'; lr.style.clipPath='inset(50%)'; lr.style.whiteSpace='nowrap'; lr.style.border='0'; document.body.appendChild(lr);} lr.textContent = msg; })('\(message)', '\(politeness)');\n"
         }
     }
     
@@ -989,6 +1208,7 @@ public enum ScrollAlignment: String {
     case end
     case nearest
 }
+
 
 
 
