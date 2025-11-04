@@ -7,6 +7,14 @@
 
 import Foundation
 
+private func escapeForJSTemplate(_ s: String) -> String {
+    var out = s
+    out = out.replacingOccurrences(of: "\\", with: "\\\\")
+    out = out.replacingOccurrences(of: "`", with: "\\`")
+    out = out.replacingOccurrences(of: "${", with: "\\${")
+    return out
+}
+
 internal extension String {
     /// Escapes the string for safe HTML output.
     ///
@@ -292,6 +300,65 @@ public extension CoreWebEndpoint {
                 element.class("col")
             }
         }
+        return result!
+    }
+    
+    // MARK: – Formatted text with bound variables
+    @discardableResult
+    func Text(_ format: String, _ bindings: WebVariableElement...) -> WebElement {
+        var result: WebElement?
+
+        // Server-side initial render: replace $0, $1, ... with current bound values
+        var initial = format
+        for (idx, b) in bindings.enumerated() {
+            initial = initial.replacingOccurrences(of: "$\(idx)", with: b.asString())
+        }
+
+        WrapInLayoutContainer {
+            result = create { element in
+                element.elementName  = "span"
+                element.class(element.builderId)
+                element.class("text")
+                // Safe initial content for SSR/HTML snapshots
+                element.innerHTML(initial.escapedForHTML())
+                element.class("col")
+
+                // Client-side dynamic updates: when any binding changes, re-render the formatted string
+                let jsFormat = escapeForJSTemplate(format)
+                var script = """
+                (function(){
+                    var fmt = `\(jsFormat)`;
+                    var values = [];
+                    function render(){
+                        try {
+                            var out = fmt.replace(/\\$(\\d+)/g, function(_, idx){
+                                var i = parseInt(idx, 10);
+                                var v = values[i];
+                                return (v == null) ? '' : String(v);
+                            });
+                            \(element.builderId).textContent = out;
+                        } catch(e) {
+                            // fail silently
+                        }
+                    }
+                """
+
+                // Register callbacks for each binding to update and re-render
+                for (i, b) in bindings.enumerated() {
+                    script += """
+                        addCallback\(b.builderId)(function(value){ values[\(i)] = value; render(); });
+                    """
+                }
+
+                script += """
+                    // Note: initial content already SSR-rendered; dynamic rendering occurs on first update
+                })();
+                """
+
+                element.script(script)
+            }
+        }
+
         return result!
     }
     

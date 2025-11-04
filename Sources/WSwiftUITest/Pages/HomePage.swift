@@ -21,9 +21,10 @@ class HomePage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
         Template {
             
             let currentTime = WString("")
+            let startTime = WString("\(Date())")
             
             HStack {
-                Text(currentTime)
+                Text("The current UTC time from the server is $0, and it was connected @ $1", currentTime, startTime)
             }
             
             WebSocket(url: "ws:/localhost:4242/ws-ping", onRecieve: [
