@@ -300,7 +300,7 @@ public class WebData {
             }
         }
     }
-
+    
     
     private func consumeJSON(_ data: Data) {
         guard let obj = try? JSONSerialization.jsonObject(with: data),
@@ -458,8 +458,8 @@ public class WebData {
     }
     public func bool(_ key: String) -> Bool? {
         guard let v = combined[key]?.lowercased() else { return nil }
-        if v == "true" || v == "1" { return true }
-        if v == "false" || v == "0" { return false }
+        if v == "true" || v == "1" || v == "on" { return true }
+        if v == "false" || v == "0" || v == "off" { return false }
         return Bool(v)
     }
     public func uuid(_ key: String) -> UUID? {
