@@ -11,12 +11,14 @@ import WSwiftUI
 class ControlsAPI : CoreWebEndpoint, WebEndpoint, WebApiEndpoint {
     
     func call() -> Any? {
+
         // This is a test API endpoint that returns a simple message
         if let request = data.file("files[]") {
             print(request.filename ?? "")
             return HttpResponse().status(.accepted)
         }
         return HttpResponse().status(.internalError)
+        
     }
     
     func acceptedRoles() -> [String]? {

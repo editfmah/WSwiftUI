@@ -9,6 +9,7 @@ import Foundation
 
 public class WebData {
     
+    private var jsonBody: Data? = nil
     private var combined: [String: String] = [:]
     private var wVarTransaction: WebVariableTransaction?
     
@@ -303,6 +304,8 @@ public class WebData {
     
     
     private func consumeJSON(_ data: Data) {
+        
+        jsonBody = data
         guard let obj = try? JSONSerialization.jsonObject(with: data),
               let dict = obj as? [String: Any]
         else { return }
@@ -468,6 +471,10 @@ public class WebData {
     }
     public func file(_ key: String) -> FilePart? {
         return files[key]
+    }
+    public func object<T: Decodable>(_ type: T.Type) -> T? {
+        guard let data = jsonBody else { return nil }
+        return try? JSONDecoder().decode(T.self, from: data)
     }
 }
 
