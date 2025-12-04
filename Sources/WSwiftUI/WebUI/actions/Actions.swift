@@ -1119,7 +1119,22 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                     }
                 }
             }
-            script += "var url\(gid) = baseUrl\(gid) + (qp\(gid).length ? (baseUrl\(gid).indexOf('?')===-1?'?':'&') + qp\(gid).join('&') : '');\n"
+            script += "var url\(gid);\n"
+            script += "if (qp\(gid).length) {\n"
+            script += "  var parts\(gid) = String(baseUrl\(gid)).split('#');\n"
+            script += "  var beforeHash\(gid) = parts\(gid)[0];\n"
+            script += "  var hash\(gid) = parts\(gid).length > 1 ? '#' + parts\(gid).slice(1).join('#') : '';\n"
+            script += "  var sep\(gid) = '';\n"
+            script += "  if (beforeHash\(gid).indexOf('?') === -1) {\n"
+            script += "    sep\(gid) = '?';\n"
+            script += "  } else {\n"
+            script += "    var lastChar\(gid) = beforeHash\(gid).slice(-1);\n"
+            script += "    sep\(gid) = (lastChar\(gid) === '?' || lastChar\(gid) === '&') ? '' : '&';\n"
+            script += "  }\n"
+            script += "  url\(gid) = beforeHash\(gid) + sep\(gid) + qp\(gid).join('&') + hash\(gid);\n"
+            script += "} else {\n"
+            script += "  url\(gid) = baseUrl\(gid);\n"
+            script += "}\n"
 
             script += "var xhr\(gid) = new XMLHttpRequest();\n"
             script += "xhr\(gid).open('GET', url\(gid), true);\n"
@@ -1220,6 +1235,7 @@ public enum ScrollAlignment: String {
     case end
     case nearest
 }
+
 
 
 
