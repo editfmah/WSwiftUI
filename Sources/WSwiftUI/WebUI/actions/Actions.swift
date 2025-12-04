@@ -122,6 +122,7 @@ public enum WebAction {
     case load(ref: String? = nil, url: String)
     case navigate(String)
     case post(url: String? = nil, values: [WebVariableElement]? = nil, onSuccessful: [WebAction]? = nil, onFailed: [WebAction]? = nil, onTimeout: [WebAction]? = nil, resultInto: WebVariableElement? = nil)
+    
     case setVariable(_ variable: WebVariableElement, to: Any?)
     case setInput(_ input: String, to: Any?)
     case setVariableName(_ varName: String, to: Any?)
@@ -213,7 +214,7 @@ public enum WebAction {
 
     case clipboardCopy(_ value: WebVariableElement)
 
-    case get(url: String, onSuccessful: [WebAction]? = nil, onFailed: [WebAction]? = nil, onTimeout: [WebAction]? = nil, resultInto: WebVariableElement? = nil)
+    case get(url: String, params: [WebVariableElement]? = nil, onSuccessful: [WebAction]? = nil, onFailed: [WebAction]? = nil, onTimeout: [WebAction]? = nil, resultInto: WebVariableElement? = nil)
     case download(url: String, filename: String?)
 
     case reload
@@ -1092,24 +1093,36 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
         case .localStorageSet(let key, let value):
             script += "localStorage.setItem('\(key)', JSON.stringify(\(value.builderId)));\n"
         case .localStorageGet(let key, let into):
-            script += "(function(){ var v = localStorage.getItem('\\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
+            script += "(function(){ var v = localStorage.getItem('\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
         case .localStorageRemove(let key):
             script += "localStorage.removeItem('\(key)');\n"
 
         case .sessionStorageSet(let key, let value):
             script += "sessionStorage.setItem('\(key)', JSON.stringify(\(value.builderId)));\n"
         case .sessionStorageGet(let key, let into):
-            script += "(function(){ var v = sessionStorage.getItem('\\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
+            script += "(function(){ var v = sessionStorage.getItem('\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
         case .sessionStorageRemove(let key):
             script += "sessionStorage.removeItem('\(key)');\n"
 
         case .clipboardCopy(let value):
             script += "(function(txt){ if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(String(txt)); } else { var ta = document.createElement('textarea'); ta.value = String(txt); document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); } catch(e){} document.body.removeChild(ta); } })(\(value.builderId));\n"
 
-        case .get(let url, let onSuccessful, let onFailed, let onTimeout, let resultInto):
+        case .get(let url, let params, let onSuccessful, let onFailed, let onTimeout, let resultInto):
             let gid = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(4)
+            // Build URL with query parameters
+            script += "var baseUrl\(gid) = '\(url)';\n"
+            script += "var qp\(gid) = [];\n"
+            if let params = params {
+                for p in params {
+                    if let name = p.internalName {
+                        script += "qp\(gid).push(encodeURIComponent('\(name)') + '=' + encodeURIComponent(String(\(p.builderId))));\n"
+                    }
+                }
+            }
+            script += "var url\(gid) = baseUrl\(gid) + (qp\(gid).length ? (baseUrl\(gid).indexOf('?')===-1?'?':'&') + qp\(gid).join('&') : '');\n"
+
             script += "var xhr\(gid) = new XMLHttpRequest();\n"
-            script += "xhr\(gid).open('GET', '\(url)', true);\n"
+            script += "xhr\(gid).open('GET', url\(gid), true);\n"
             script += "xhr\(gid).withCredentials = true;\n"
             script += "xhr\(gid).onreadystatechange = function(){\n"
             script += "  if (xhr\(gid).readyState !== 4) return;\n"
@@ -1152,16 +1165,15 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
             script += "window.open('\(url)', '\(target)');\n"
 
         case .tooltipShow(let ref):
-            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var tt = bootstrap.Tooltip.getOrCreateInstance(el); tt.show(); })();\n"
+            script += "(function(){ var el = document.getElementById('\(ref)'); if(!el) return; var tt = bootstrap.Tooltip.getOrCreateInstance(el); tt.show(); })();\n"
         case .tooltipHide(let ref):
-            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var tt = bootstrap.Tooltip.getOrCreateInstance(el); tt.hide(); })();\n"
+            script += "(function(){ var el = document.getElementById('\(ref)'); if(!el) return; var tt = bootstrap.Tooltip.getOrCreateInstance(el); tt.hide(); })();\n"
         case .toastShow(let ref):
-            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var toast = bootstrap.Toast.getOrCreateInstance(el); toast.show(); })();\n"
+            script += "(function(){ var el = document.getElementById('\(ref)'); if(!el) return; var toast = bootstrap.Toast.getOrCreateInstance(el); toast.show(); })();\n"
         case .toastHide(let ref):
-            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var toast = bootstrap.Toast.getOrCreateInstance(el); toast.hide(); })();\n"
+            script += "(function(){ var el = document.getElementById('\(ref)'); if(!el) return; var toast = bootstrap.Toast.getOrCreateInstance(el); toast.hide(); })();\n"
         case .tabShow(let ref):
-            script += "(function(){ var el = document.getElementById('\\(ref)'); if(!el) return; var tab = new bootstrap.Tab(el); tab.show(); })();\n"
-
+            script += "(function(){ var el = document.getElementById('\(ref)'); if(!el) return; var tab = new bootstrap.Tab(el); tab.show(); })();\n"
         case .delay(let seconds, let actions):
             let nested = CompileActions(actions, builderId: builderId)
             script += "setTimeout(function(){\n\(nested)\n}, \(Int(seconds * 1000)));\n"
@@ -1208,6 +1220,7 @@ public enum ScrollAlignment: String {
     case end
     case nearest
 }
+
 
 
 
