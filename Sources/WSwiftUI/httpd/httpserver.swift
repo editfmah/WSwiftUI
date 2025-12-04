@@ -214,7 +214,23 @@ public final class HttpResponse {
     @discardableResult public func header(_ k: String, _ v: String) -> Self { headers.append((k, v)); return self }
     @discardableResult public func headers(_ items: [(String,String)]) -> Self { headers.append(contentsOf: items); return self }
     
-    public enum ContentStyle { case json, html, text, bytes, octetStream }
+    public enum ImageType {
+        case jpg
+        case png
+        case svg
+        var contentType: String {
+            switch self {
+            case .jpg:
+                return "image/jpeg"
+            case .png:
+                return "image/png"
+            case .svg:
+                return "image/svg+xml"
+            }
+        }
+    }
+    
+    public enum ContentStyle { case json, html, text, bytes, octetStream, image(ImageType) }
     @discardableResult public func content(_ style: ContentStyle) -> Self {
         switch style {
             case .json:        return header("Content-Type", "application/json; charset=utf-8")
@@ -222,6 +238,8 @@ public final class HttpResponse {
             case .text:        return header("Content-Type", "text/plain; charset=utf-8")
             case .bytes:       return self // caller should set their own type if desired
             case .octetStream: return header("Content-Type", "application/octet-stream")
+            case .image(let type):
+                return header("Content-Type", type.contentType)
         }
     }
     
