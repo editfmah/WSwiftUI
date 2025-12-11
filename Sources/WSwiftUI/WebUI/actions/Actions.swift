@@ -702,6 +702,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 script += "    \(resultInto.builderId) = xhr\(id).responseText;\n"
             }
             if let onSuccessful = onSuccessful {
+                
                 for action in onSuccessful {
                     if case .handleResponse(let scriptContent) = action {
                         script += """
@@ -714,6 +715,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                                 }
                                 """
                     } else {
+                        script += "var result = xhr\(id).responseText;\n"
                         script += CompileActions([action], builderId: builderId)
                     }
                 }
@@ -1146,6 +1148,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 script += "    \(resultInto.builderId) = xhr\(gid).responseText;\n"
             }
             if let onSuccessful = onSuccessful {
+                script += "var result = xhr\(gid).responseText;\n"
                 for a in onSuccessful {
                     script += CompileActions([a], builderId: builderId)
                 }
