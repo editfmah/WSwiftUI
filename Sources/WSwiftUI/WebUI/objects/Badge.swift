@@ -69,7 +69,7 @@ public extension CoreWebEndpoint {
         badge.elementName = "span"
         badge.addAttribute(.class("badge"))
         badge.addAttribute(.class("wsui-badge"))
-        badge.addAttribute(.class("bg-\(variant.rawValue)\(\)"))
+        badge.addAttribute(.class("bg-\(variant.rawValue)"))
         if pill {
             badge.addAttribute(.class("rounded-pill"))
         }
@@ -80,3 +80,4 @@ public extension CoreWebEndpoint {
         return badge
     }
 }
+

@@ -34,7 +34,7 @@ public extension CoreWebEndpoint {
     populateCreatedObject(nav)
     nav.elementName = "nav"
     nav.addAttribute(.class(
-      "navbar navbar-expand-\(expand.rawValue)\(\) navbar-\(color.rawValue)\(\) bg-\(bg.rawValue)\(\)"
+      "navbar navbar-expand-\(expand.rawValue) navbar-\(color.rawValue) bg-\(bg.rawValue)"
     ))
     nav.addAttribute(.class("wsui-navbar"))
 

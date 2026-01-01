@@ -58,14 +58,14 @@ public extension CoreWebEndpoint {
         // Outer <div class="alert alert-<variant>" role="alert">
         let alert = createAlert { el in
             el.elementName = "div"
-            el.class("alert")
-            el.class("wsui-alert")
-            el.class("alert-\(variant.rawValue)")
+            el.`class`("alert")
+            el.`class`("wsui-alert")
+            el.`class`("alert-\(variant.rawValue)")
             el.addAttribute(.pair("role", "alert"))
             if dismissible {
-                el.class("alert-dismissible")
-                el.class("fade")
-                el.class("show")
+                el.`class`("alert-dismissible")
+                el.`class`("fade")
+                el.`class`("show")
             }
         }
         stack.append(alert)

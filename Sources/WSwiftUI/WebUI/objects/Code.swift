@@ -64,7 +64,7 @@ public extension CoreWebEndpoint {
                 element.elementName  = "pre"
                 element.class("wsui-code")
                 // we need to ensure that the text output is safe for HTML, so we escape it
-                element.innerHTML("<code class = \"language-\(language.rawValue)\(\)\">\(text)</code>")
+                element.innerHTML("<code class = \"language-\(language.rawValue)\">\(text)</code>")
             }
         }
         
