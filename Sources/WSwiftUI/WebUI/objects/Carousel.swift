@@ -124,6 +124,7 @@ public extension CoreWebEndpoint {
         carousel.elementName = "div"
         carousel.addAttribute(.class("carousel"))
         carousel.addAttribute(.class("slide"))
+        carousel.addAttribute(.class("wsui-carousel"))
         carousel.addAttribute(.pair("id", id))
         if let iv = interval { carousel.interval(iv) }
         carousel.ride(ride)

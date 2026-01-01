@@ -75,6 +75,7 @@ public extension CoreWebEndpoint {
         populateCreatedObject(progress)
         progress.elementName = "div"
         progress.addAttribute(.class("progress"))
+        progress.addAttribute(.class("wsui-progress"))
         stack.append(progress)
         content()
         stack.removeAll(where: { $0.builderId == progress.builderId })

@@ -123,6 +123,7 @@ public extension CoreWebEndpoint {
         inp.elementName = "input"
         inp.type(type)
         inp.class("form-control")
+        inp.class("wsui-input")
         if binding.errorMessage != nil {
             inp.addAttribute(.errorMessage(binding.errorMessage!))
         }
@@ -156,6 +157,7 @@ addCallback\(binding.builderId)(updateVariable\(inp.builderId));
         }
         if let varName = value.internalName { ta.name(varName) }
         ta.class("form-control")
+        ta.class("wsui-textarea")
         let id = "\(ta.builderId)"
         ta.id(id)
         ta.addAttribute(.script("""

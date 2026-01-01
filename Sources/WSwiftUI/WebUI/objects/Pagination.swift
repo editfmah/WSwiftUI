@@ -75,6 +75,7 @@ public extension CoreWebEndpoint {
         populateCreatedObject(pagination)
         pagination.elementName = "ul"
         pagination.addAttribute(.class("pagination"))
+        pagination.addAttribute(.class("wsui-pagination"))
         if let sz = size { pagination.class(sz.rawValue) }
         pagination.align(alignment)
         stack.append(pagination)

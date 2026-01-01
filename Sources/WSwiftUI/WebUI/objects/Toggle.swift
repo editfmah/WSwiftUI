@@ -32,6 +32,7 @@ public extension CoreWebEndpoint {
                 element.elementName = "div"
                 element.class(element.builderId)
                 element.class("form-check")
+                element.class("wsui-toggle")
                 
             }
             

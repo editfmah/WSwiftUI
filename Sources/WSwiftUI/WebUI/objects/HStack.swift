@@ -11,6 +11,7 @@ public extension CoreWebEndpoint {
     func HStack(_ closure: WebComposerClosure) -> WebElement {
         let object = create { element in
             element.class("row")
+            element.class("wsui-hstack")
             element.layout = .horizontal
         }
         stack.append(object)

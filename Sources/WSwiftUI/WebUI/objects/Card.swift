@@ -104,6 +104,7 @@ public extension CoreWebEndpoint {
         let card = createCard { el in
             el.elementName = "div"
             el.class("card")
+            el.class("wsui-card")
         }
         // allow additional modifiers like .bordered(), .shadow()
         card.default()

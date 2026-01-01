@@ -60,6 +60,7 @@ public extension CoreWebEndpoint {
         let footer = WebFooterElement()
         populateCreatedObject(footer)
         footer.elementName = "footer"
+        footer.addAttribute(.class("wsui-footer"))
         // Default spacing and background (if needed)
         footer.addAttribute(.class("py-3"))
         stack.append(footer)

@@ -50,6 +50,7 @@ public extension CoreWebEndpoint {
         let spacer = WebSpacerElement()
         populateCreatedObject(spacer)
         spacer.elementName = "div"
+        spacer.addAttribute(.class("wsui-spacer"))
         spacer.grow()
         return spacer
     }

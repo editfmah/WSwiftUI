@@ -16,6 +16,7 @@ public extension CoreWebEndpoint {
     func VStack(mode: VStackContentMode = .fill, _ closure: WebComposerClosure) -> WebElement {
         let object = create { element in
             element.class("col")
+            element.class("wsui-vstack")
             if mode == .fit {
                 element.class("col-md-auto")
             }

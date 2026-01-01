@@ -118,6 +118,7 @@ public extension CoreWebEndpoint {
         let table = createTable { el in
             el.elementName = "table"
             el.class("table")
+            el.class("wsui-table")
         }
         stack.append(table)
         content()

@@ -137,6 +137,7 @@ public extension CoreWebEndpoint {
         let modal = createModal { el in
             el.elementName = "div"
             el.class("modal")
+            el.class("wsui-modal")
             if fade { el.class("fade") }
             el.addAttribute(.pair("id", id))
             el.addAttribute(.pair("tabindex", "-1"))

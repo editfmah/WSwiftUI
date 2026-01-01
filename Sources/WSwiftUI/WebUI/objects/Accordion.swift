@@ -64,6 +64,7 @@ public extension CoreWebEndpoint {
         let accordion: WebAccordionElement = create { el in
             el.elementName = "div"
             el.class("accordion")
+            el.class("wsui-accordion")
             el.class(el.builderId)
             el.id(el.builderId)
         }
@@ -93,6 +94,7 @@ public extension CoreWebEndpoint {
         let item = createItem { el in
             el.elementName = "div"
             el.class("accordion-item")
+            el.class("wsui-accordion-item")
         }
         stack.append(item)
 

@@ -74,6 +74,7 @@ public extension CoreWebEndpoint {
         let form = WebFormElement()
         populateCreatedObject(form)
         form.elementName = "form"
+        form.addAttribute(.class("wsui-form"))
         form.method(method)
         if let url = action {
             form.action(url)

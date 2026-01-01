@@ -218,14 +218,17 @@ public final class HttpResponse {
         case jpg
         case png
         case svg
+        case custom(String)
         var contentType: String {
             switch self {
-            case .jpg:
-                return "image/jpeg"
-            case .png:
-                return "image/png"
-            case .svg:
-                return "image/svg+xml"
+                case .jpg:
+                    return "image/jpeg"
+                case .png:
+                    return "image/png"
+                case .svg:
+                    return "image/svg+xml"
+                case .custom(let s):
+                    return s
             }
         }
     }
@@ -417,13 +420,13 @@ fileprivate struct SHA1 {
         // append length as 64-bit big-endian
         var mlBE = ml.bigEndian
         withUnsafeBytes(of: &mlBE) { message.append(contentsOf: $0) }
-
+        
         var h0: UInt32 = 0x67452301
         var h1: UInt32 = 0xEFCDAB89
         var h2: UInt32 = 0x98BADCFE
         var h3: UInt32 = 0x10325476
         var h4: UInt32 = 0xC3D2E1F0
-
+        
         var w = [UInt32](repeating: 0, count: 80)
         for chunkStart in stride(from: 0, to: message.count, by: 64) {
             // Break chunk into sixteen 32-bit big-endian words w[0..15]
@@ -440,29 +443,29 @@ fileprivate struct SHA1 {
                 let v = w[i-3] ^ w[i-8] ^ w[i-14] ^ w[i-16]
                 w[i] = (v << 1) | (v >> 31)
             }
-
+            
             var a = h0
             var b = h1
             var c = h2
             var d = h3
             var e = h4
-
+            
             for i in 0..<80 {
                 var f: UInt32 = 0
                 var k: UInt32 = 0
                 switch i {
-                case 0...19:
-                    f = (b & c) | ((~b) & d)
-                    k = 0x5A827999
-                case 20...39:
-                    f = b ^ c ^ d
-                    k = 0x6ED9EBA1
-                case 40...59:
-                    f = (b & c) | (b & d) | (c & d)
-                    k = 0x8F1BBCDC
-                default:
-                    f = b ^ c ^ d
-                    k = 0xCA62C1D6
+                    case 0...19:
+                        f = (b & c) | ((~b) & d)
+                        k = 0x5A827999
+                    case 20...39:
+                        f = b ^ c ^ d
+                        k = 0x6ED9EBA1
+                    case 40...59:
+                        f = (b & c) | (b & d) | (c & d)
+                        k = 0x8F1BBCDC
+                    default:
+                        f = b ^ c ^ d
+                        k = 0xCA62C1D6
                 }
                 let temp = ((a << 5) | (a >> 27)) &+ f &+ e &+ k &+ w[i]
                 e = d
@@ -471,14 +474,14 @@ fileprivate struct SHA1 {
                 b = a
                 a = temp
             }
-
+            
             h0 = h0 &+ a
             h1 = h1 &+ b
             h2 = h2 &+ c
             h3 = h3 &+ d
             h4 = h4 &+ e
         }
-
+        
         var digest = Data()
         for h in [h0, h1, h2, h3, h4] {
             var be = h.bigEndian
@@ -506,7 +509,7 @@ public struct WebSocketFrame: Sendable {
     public var opcode: WebSocketOpcode
     public var payload: Data
     public var maskingKey: UInt32? // network-order key if present
-
+    
     public init(fin: Bool, opcode: WebSocketOpcode, payload: Data = Data(), maskingKey: UInt32? = nil) {
         self.fin = fin
         self.opcode = opcode
@@ -520,17 +523,17 @@ public final class WebSocketConnection: @unchecked Sendable {
     internal var endpoint: CoreWebsocketEndpoint?
     public let fd: Int32
     private let writeLock = NSLock()
-
+    
     public init(fd: Int32) {
         self.fd = fd
     }
-
+    
     deinit {
         // no implicit close; caller owns lifecycle
     }
-
+    
     // MARK: - I/O primitives
-
+    
     private func readExact(_ count: Int) throws -> Data {
         var remaining = count
         var out = Data()
@@ -548,7 +551,7 @@ public final class WebSocketConnection: @unchecked Sendable {
         }
         return out
     }
-
+    
     private func writeAll(_ data: Data) throws {
         try data.withUnsafeBytes { (p: UnsafeRawBufferPointer) in
             var base = p.baseAddress!
@@ -561,9 +564,9 @@ public final class WebSocketConnection: @unchecked Sendable {
             }
         }
     }
-
+    
     // MARK: - Framing
-
+    
     private func unmask(_ data: inout Data, key: UInt32) {
         var k = key
         data.withUnsafeMutableBytes { (p: UnsafeMutableRawBufferPointer) in
@@ -578,14 +581,14 @@ public final class WebSocketConnection: @unchecked Sendable {
             }
         }
     }
-
+    
     private func serialize(frame: WebSocketFrame, mask: Bool = false) -> Data {
         var out = Data()
         let finBit: UInt8 = frame.fin ? 0x80 : 0x00
         let opcodeNibble: UInt8 = frame.opcode.rawValue & 0x0F
         var b0 = finBit | opcodeNibble
         withUnsafeBytes(of: &b0) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 1) }
-
+        
         var payload = frame.payload
         var maskBit: UInt8 = mask ? 0x80 : 0x00
         let len = payload.count
@@ -603,7 +606,7 @@ public final class WebSocketConnection: @unchecked Sendable {
             var be = UInt64(len).bigEndian
             withUnsafeBytes(of: &be) { out.append($0.bindMemory(to: UInt8.self).baseAddress!, count: 8) }
         }
-
+        
         var maskingKey: UInt32 = 0
         if mask {
             maskingKey = frame.maskingKey ?? UInt32.random(in: UInt32.min...UInt32.max)
@@ -616,10 +619,10 @@ public final class WebSocketConnection: @unchecked Sendable {
         } else {
             out.append(payload)
         }
-
+        
         return out
     }
-
+    
     // Reads a single raw frame (may be a fragment)
     private func readFrame() throws -> WebSocketFrame {
         let header = try readExact(2)
@@ -654,55 +657,55 @@ public final class WebSocketConnection: @unchecked Sendable {
         }
         return WebSocketFrame(fin: fin, opcode: opcode, payload: payload, maskingKey: maskingKey)
     }
-
+    
     // Reads a complete message (handles fragmentation for text/binary)
     public func readMessage() throws -> WebSocketFrame {
         var first = try readFrame()
         switch first.opcode {
-        case .text, .binary:
-            if first.fin { return first }
-            // accumulate continuation frames
-            var data = first.payload
-            while true {
-                let cont = try readFrame()
-                guard cont.opcode == .continuation else { throw Err.parse("ws continuation expected") }
-                data.append(cont.payload)
-                if cont.fin { break }
-            }
-            return WebSocketFrame(fin: true, opcode: first.opcode, payload: data, maskingKey: nil)
-        case .continuation:
-            throw Err.parse("unexpected continuation start")
-        case .ping, .pong, .close:
-            return first
+            case .text, .binary:
+                if first.fin { return first }
+                // accumulate continuation frames
+                var data = first.payload
+                while true {
+                    let cont = try readFrame()
+                    guard cont.opcode == .continuation else { throw Err.parse("ws continuation expected") }
+                    data.append(cont.payload)
+                    if cont.fin { break }
+                }
+                return WebSocketFrame(fin: true, opcode: first.opcode, payload: data, maskingKey: nil)
+            case .continuation:
+                throw Err.parse("unexpected continuation start")
+            case .ping, .pong, .close:
+                return first
         }
     }
-
+    
     // MARK: - Public send helpers (servers do not mask)
-
+    
     public func send(frame: WebSocketFrame) throws {
         // As a server, do not mask outgoing frames per RFC6455
         let data = serialize(frame: frame, mask: false)
         try writeAll(data)
     }
-
+    
     public func sendText(_ text: String) throws {
         try send(frame: WebSocketFrame(fin: true, opcode: .text, payload: Data(text.utf8)))
     }
-
+    
     public func sendBinary(_ data: Data) throws {
         try send(frame: WebSocketFrame(fin: true, opcode: .binary, payload: data))
     }
-
+    
     public func sendPing(_ data: Data = Data()) throws {
         let payload = data.prefix(125) // control frames max 125
         try send(frame: WebSocketFrame(fin: true, opcode: .ping, payload: payload))
     }
-
+    
     public func sendPong(_ data: Data = Data()) throws {
         let payload = data.prefix(125)
         try send(frame: WebSocketFrame(fin: true, opcode: .pong, payload: payload))
     }
-
+    
     public func close(code: UInt16 = 1000, reason: String = "") throws {
         var payload = Data()
         var be = code.bigEndian
@@ -711,36 +714,36 @@ public final class WebSocketConnection: @unchecked Sendable {
         payload = payload.prefix(125)
         try send(frame: WebSocketFrame(fin: true, opcode: .close, payload: payload))
     }
-
+    
     // MARK: - Run loop
-
+    
     public typealias FrameHandler = @Sendable (WebSocketFrame) -> [WebSocketFrame]?
-
+    
     // Runs a blocking loop reading frames and invoking the handler. Returns on close or error.
     public func run(handle: FrameHandler) throws {
         loop: while true {
             let frame = try readMessage()
             switch frame.opcode {
-            case .ping:
-                // if handler returns nothing, auto-pong
-                if let responses = handle(frame) {
-                    for r in responses { try send(frame: r) }
-                } else {
-                    try sendPong(frame.payload)
-                }
-            case .close:
-                // echo close if handler doesn't override
-                if let responses = handle(frame) {
-                    for r in responses { try send(frame: r) }
-                } else {
-                    // attempt to echo and then break
-                    try send(frame: WebSocketFrame(fin: true, opcode: .close, payload: frame.payload))
-                }
-                break loop
-            default:
-                if let responses = handle(frame) {
-                    for r in responses { try send(frame: r) }
-                }
+                case .ping:
+                    // if handler returns nothing, auto-pong
+                    if let responses = handle(frame) {
+                        for r in responses { try send(frame: r) }
+                    } else {
+                        try sendPong(frame.payload)
+                    }
+                case .close:
+                    // echo close if handler doesn't override
+                    if let responses = handle(frame) {
+                        for r in responses { try send(frame: r) }
+                    } else {
+                        // attempt to echo and then break
+                        try send(frame: WebSocketFrame(fin: true, opcode: .close, payload: frame.payload))
+                    }
+                    break loop
+                default:
+                    if let responses = handle(frame) {
+                        for r in responses { try send(frame: r) }
+                    }
             }
         }
     }

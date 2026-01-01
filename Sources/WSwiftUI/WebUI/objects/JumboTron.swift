@@ -31,6 +31,7 @@ public extension CoreWebEndpoint {
     populateCreatedObject(jumbo)
     jumbo.elementName = "div"
     jumbo.addAttribute(.class("jumbotron p-5 mb-4 bg-light rounded-3"))
+    jumbo.addAttribute(.class("wsui-jumbotron"))
     if let url = bgImageURL {
       jumbo.addAttribute(.style("background-image: url('\(url)'); background-size: cover;"))
     }

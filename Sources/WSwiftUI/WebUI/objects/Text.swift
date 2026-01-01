@@ -322,6 +322,7 @@ public extension CoreWebEndpoint {
                 // Safe initial content for SSR/HTML snapshots
                 element.innerHTML(initial.escapedForHTML())
                 element.class("col")
+                element.class("wsui-text")
 
                 // Client-side dynamic updates: when any binding changes, re-render the formatted string
                 let jsFormat = escapeForJSTemplate(format)

@@ -94,6 +94,7 @@ public extension CoreWebEndpoint {
         }
         // default bootstrap btn base class
         button.default()
+        button.addAttribute(.class("wsui-button"))
         return button
     }
 }

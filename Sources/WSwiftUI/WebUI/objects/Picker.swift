@@ -70,6 +70,7 @@ public extension CoreWebEndpoint {
                 let picker = createPicker { el in
                     el.elementName = "select"
                     el.class("form-select")
+                    el.class("wsui-picker")
                     el.value = binding
                     if binding.errorMessage != nil {
                         el.addAttribute(.errorMessage(binding.errorMessage!))

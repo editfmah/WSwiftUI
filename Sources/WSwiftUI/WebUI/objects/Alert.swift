@@ -59,6 +59,7 @@ public extension CoreWebEndpoint {
         let alert = createAlert { el in
             el.elementName = "div"
             el.class("alert")
+            el.class("wsui-alert")
             el.class("alert-\(variant.rawValue)")
             el.addAttribute(.pair("role", "alert"))
             if dismissible {

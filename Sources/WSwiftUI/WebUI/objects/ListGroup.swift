@@ -79,6 +79,7 @@ public extension CoreWebEndpoint {
         populateCreatedObject(group)
         group.elementName = "ul"
         group.addAttribute(.class("list-group"))
+        group.addAttribute(.class("wsui-list-group"))
         stack.append(group)
         content()
         stack.removeAll(where: { $0.builderId == group.builderId })

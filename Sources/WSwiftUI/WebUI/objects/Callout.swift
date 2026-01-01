@@ -17,6 +17,7 @@ public extension CoreWebEndpoint {
         let callout = create { el in
             el.elementName = "div"
             el.class("p-3")
+            el.class("wsui-callout")
             el.border(.leading, .custom(type.rgb), width: 4)
             el.border(.top, .lightgrey, width: 1)
             el.border(.bottom, .lightgrey, width: 1)

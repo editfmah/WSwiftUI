@@ -88,6 +88,7 @@ public extension CoreWebEndpoint {
             el.elementName = "div"
             el.class("border")
             el.class("rounded")
+            el.class("wsui-file-uploader")
             el.class("p-3")
             el.class("file-uploader")
             el.id(el.builderId)

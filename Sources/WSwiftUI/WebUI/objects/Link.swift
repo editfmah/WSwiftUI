@@ -24,6 +24,7 @@ public extension CoreWebEndpoint {
         WrapInLayoutContainer {
             result = create { el in
                 el.elementName = "a"
+                el.addAttribute(.class("wsui-link"))
                 el.addAttribute(.class(el.builderId))
                 el.addAttribute(.href(href))
                 if let t = target {

@@ -13,6 +13,7 @@ public extension CoreWebEndpoint {
     populateCreatedObject(nav)
     nav.elementName = "nav"
     nav.addAttribute(.class("breadcrumb-container"))
+    nav.addAttribute(.class("wsui-breadcrumb"))
     nav.addAttribute(.pair("aria-label", "breadcrumb"))
     stack.append(nav)
     

@@ -110,6 +110,7 @@ public extension CoreWebEndpoint {
         populateCreatedObject(off)
         off.elementName = "div"
         off.addAttribute(.class("offcanvas"))
+        off.addAttribute(.class("wsui-offcanvas"))
         off.addAttribute(.class(placement.rawValue))
         off.addAttribute(.pair("id", id))
         off.addAttribute(.pair("tabindex", "-1"))

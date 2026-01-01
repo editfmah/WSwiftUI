@@ -52,6 +52,7 @@ public extension CoreWebEndpoint {
             el.elementName = "div"
             el.class(el.builderId)
             el.class("spinner-border")
+            el.class("wsui-spinner")
             el.addAttribute(.pair("role", "status"))
         }
         stack.append(spinner)
