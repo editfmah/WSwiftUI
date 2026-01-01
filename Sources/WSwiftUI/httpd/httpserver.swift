@@ -762,7 +762,7 @@ public final class HTTPServer: @unchecked Sendable {
         public var port: UInt16 = 8080
         public var workers: Int = max(1, ProcessInfo.processInfo.activeProcessorCount - 1)
         public var recvTimeoutSeconds: Int32 = 60
-        public var maxInMemoryBodyBytes: Int = 2 * 1024 * 1024       // 2 MB
+        public var maxInMemoryBodyBytes: Int = 16 * 1024 * 1024       // 2 MB
         public var absoluteMaxBodyBytes: Int = 1_000_000_000          // 1 GB safety
         public init() {}
     }
