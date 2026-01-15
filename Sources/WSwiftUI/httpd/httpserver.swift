@@ -197,6 +197,20 @@ public final class HttpRequest {
         }
         return out
     }
+    
+    /// Decode JSON from the request body
+    public func decodeBody<T: Decodable>(_ type: T.Type, decoder: JSONDecoder = JSONDecoder()) throws -> T {
+        let data: Data
+        switch body {
+        case .none:
+            throw Err.parse("No body to decode")
+        case .inMemory(let d):
+            data = d
+        case .onDisk(let url, _):
+            data = try Data(contentsOf: url)
+        }
+        return try decoder.decode(type, from: data)
+    }
 }
 
 public final class HttpResponse {
@@ -255,9 +269,9 @@ public final class HttpResponse {
         return self
     }
     
-    @discardableResult public func body(json object: Any, options: JSONSerialization.WritingOptions = []) -> Self {
+    @discardableResult public func body<T: Encodable>(json object: T, encoder: JSONEncoder = JSONEncoder()) -> Self {
         do {
-            let data = try JSONSerialization.data(withJSONObject: object, options: options)
+            let data = try encoder.encode(object)
             if headers.first(where: { $0.0.caseInsensitiveCompare("Content-Type") == .orderedSame }) == nil {
                 _ = content(.json)
             }
@@ -265,7 +279,7 @@ public final class HttpResponse {
         } catch {
             self.status = .internalError
             _ = content(.text)
-            self.bodyBytes = Data("JSON encode error".utf8)
+            self.bodyBytes = Data("JSON encode error: \(error.localizedDescription)".utf8)
         }
         return self
     }
