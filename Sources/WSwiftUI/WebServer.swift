@@ -232,7 +232,7 @@ public class WSwiftServer {
                         return HttpResponse().status(.ok).content(.html).body(pageContent).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: 3600, expires: nil, httpOnly: true, secure: false, sameSite: "Lax")
                     }
                 } else if let response = response as? Codable {
-                    return HttpResponse().status(.ok).content(.json).body(json: response, options: []).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: 3600, expires: nil, httpOnly: true, secure: false, sameSite: "Lax")
+                    return HttpResponse().status(.ok).content(.json).body(json: response).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: 3600, expires: nil, httpOnly: true, secure: false, sameSite: "Lax")
                 }
                 
                 return HttpResponse().status(.notFound)
