@@ -1006,7 +1006,7 @@ public final class HTTPServer: @unchecked Sendable {
         }
 
         var inMem = Data()
-        inMem.reserveCapacity(min(cfg.absoluteMaxBodyBytes, length ?? (128 * 1024)))
+        inMem.reserveCapacity(min(16 * 1024 * 1024, length ?? (128 * 1024)))
 
         var total = 0
 
