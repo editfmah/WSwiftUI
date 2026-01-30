@@ -107,7 +107,6 @@ public struct HttpStatus: Equatable, Hashable, Sendable {
 public enum HttpBody {
     case none
     case inMemory(Data)
-    case onDisk(url: URL, size: Int)
 }
 
 public enum RequestKind: Sendable {
@@ -206,8 +205,6 @@ public final class HttpRequest {
             throw Err.parse("No body to decode")
         case .inMemory(let d):
             data = d
-        case .onDisk(let url, _):
-            data = try Data(contentsOf: url)
         }
         return try decoder.decode(type, from: data)
     }
@@ -776,7 +773,6 @@ public final class HTTPServer: @unchecked Sendable {
         public var port: UInt16 = 8080
         public var workers: Int = max(1, ProcessInfo.processInfo.activeProcessorCount - 1)
         public var recvTimeoutSeconds: Int32 = 60
-        public var maxInMemoryBodyBytes: Int = 16 * 1024 * 1024       // 2 MB
         public var absoluteMaxBodyBytes: Int = 1_000_000_000          // 1 GB safety
         public init() {}
     }
@@ -995,84 +991,37 @@ public final class HTTPServer: @unchecked Sendable {
         let method = head.method
         let mayHaveBody = !(method == .GET || method == .HEAD)
         if !mayHaveBody { return .none }
-        
+
         let isChunked = head.isChunked
         let length = head.contentLength
-        
+
         // Quick rejections
         if let len = length, len > cfg.absoluteMaxBodyBytes {
             throw Err.tooLarge
         }
-        
+
         // If content-length unknown and not chunked => no body (or unsupported)
         if length == nil && !isChunked {
             return .none
         }
-        
-        // Decide streaming vs memory
-        let shouldStreamToDisk: (Int?) -> Bool = { l in
-            if let l = l {
-                return l > self.cfg.maxInMemoryBodyBytes
-            } else {
-                // unknown, chunked; stream when we cross the threshold
-                return false
-            }
-        }
-        
-        // Prepare temp file lazily (only when needed)
-        var tempURL: URL?
-        var tempFD: Int32 = -1
-        func ensureTempSink() throws {
-            if tempFD >= 0 { return }
-            let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-            let url = dir.appendingPathComponent("microhttp-\(UUID().uuidString).upload")
-            let path = url.path
-            let fd = open(path, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR)
-            if fd < 0 { throw Err.io(errnoString("open tmp")) }
-            tempURL = url
-            tempFD = fd
-        }
-        
+
         var inMem = Data()
-        inMem.reserveCapacity(min(cfg.maxInMemoryBodyBytes, length ?? (128 * 1024)))
-        
+        inMem.reserveCapacity(min(cfg.absoluteMaxBodyBytes, length ?? (128 * 1024)))
+
         var total = 0
-        
-        // Helper: write bytes either to memory or to temp when threshold exceeded
+
         func writeChunk(_ ptr: UnsafeRawBufferPointer) throws {
             total += ptr.count
             if total > cfg.absoluteMaxBodyBytes {
                 throw Err.tooLarge
             }
-            if tempFD >= 0 {
-                // already streaming
-                let w = write(tempFD, ptr.baseAddress, ptr.count)
-                if w < 0 || w != ptr.count { throw Err.io(errnoString("write tmp")) }
-            } else {
-                // still in memory
-                if inMem.count + ptr.count > cfg.maxInMemoryBodyBytes {
-                    // switch to disk
-                    try ensureTempSink()
-                    // flush what we have
-                    try inMem.withUnsafeBytes { old in
-                        let w = write(tempFD, old.baseAddress, old.count)
-                        if w < 0 || w != old.count { throw Err.io(errnoString("write tmp")) }
-                    }
-                    inMem.removeAll(keepingCapacity: false)
-                    // write current chunk to disk
-                    let w = write(tempFD, ptr.baseAddress, ptr.count)
-                    if w < 0 || w != ptr.count { throw Err.io(errnoString("write tmp")) }
-                } else {
-                    inMem.appendBytes(ptr)
-                }
-            }
+            inMem.appendBytes(ptr)
         }
-        
+
         // --- Fixed length body
         if let len = length, !isChunked {
             if len == 0 { return .none }
-            if shouldStreamToDisk(len) { try ensureTempSink() }
-            
+
             var remaining = len
             let bufSize = min(64 * 1024, max(8 * 1024, len))
             var buf = [UInt8](repeating: 0, count: bufSize)
@@ -1088,24 +1037,18 @@ public final class HTTPServer: @unchecked Sendable {
                 }
                 remaining -= r
             }
-            if tempFD >= 0 {
-                close(tempFD)
-                return .onDisk(url: tempURL!, size: total)
-            } else {
-                return .inMemory(inMem)
-            }
+            return .inMemory(inMem)
         }
-        
+
         // --- Chunked body
         if isChunked {
-            // For chunked, we may stay in memory until crossing threshold
             let bufCap = 64 * 1024
             var buf = [UInt8](repeating: 0, count: bufCap)
-            
+
             func readLine() throws -> String {
                 try readLineCRLF(fd: fd)
             }
-            
+
             while true {
                 // chunk size line (hex; may include extensions after ';')
                 let sizeLine = try readLine()
@@ -1116,7 +1059,6 @@ public final class HTTPServer: @unchecked Sendable {
                     while true {
                         let l = try readLine()
                         if l.isEmpty { break }
-                        // (optional) could capture trailer headers if needed
                     }
                     break
                 }
@@ -1134,7 +1076,6 @@ public final class HTTPServer: @unchecked Sendable {
                     remaining -= r
                 }
                 // trailing CRLF after each chunk
-                // consume \r\n
                 var crlf = [UInt8](repeating: 0, count: 2)
                 let rr = crlf.withUnsafeMutableBytes { p in
                     read(fd, p.baseAddress, 2)
@@ -1143,15 +1084,10 @@ public final class HTTPServer: @unchecked Sendable {
                     throw Err.parse("chunk CRLF")
                 }
             }
-            
-            if tempFD >= 0 {
-                close(tempFD)
-                return .onDisk(url: tempURL!, size: total)
-            } else {
-                return .inMemory(inMem)
-            }
+
+            return .inMemory(inMem)
         }
-        
+
         // Fallback
         return .none
     }
