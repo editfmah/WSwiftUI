@@ -203,13 +203,10 @@ internal extension CoreWebEndpoint {
             parts.append("style=\"\(allStyles)\"")
         }
         if let initialValue = initialValue {
+            parts.append("value=\"\(initialValue)\"")
             if let v = initialValue as? String {
-                parts.append("value=\"\(v.htmlAttrEscaped())\"")
-                domLoadedScripts.append("updateWebVariable\(element.builderId)('\(v.jsEscaped())');")
-            } else {
-                parts.append("value=\"\(initialValue)\"")
-            }
-            if let v = initialValue as? Int {
+                domLoadedScripts.append("updateWebVariable\(element.builderId)('\(v)');")
+            } else if let v = initialValue as? Int {
                 domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v));")
             } else if let v = initialValue as? Double {
                 domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v));")
@@ -222,14 +219,10 @@ internal extension CoreWebEndpoint {
             } else if let v = initialValue as? [Int] {
                 domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\($0)" }.joined(separator: ",")));")
             } else if let v = initialValue as? [String] {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0.jsEscaped())\"" }.joined(separator: ",")));")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0)\"" }.joined(separator: ",")));")
             }
         } else if let value = value {
-            if let str = value as? String {
-                parts.append("value=\"\(str.htmlAttrEscaped())\"")
-            } else {
-                parts.append("value=\"\(value)\"")
-            }
+            parts.append("value=\"\(value)\"")
         }
         parts.append(contentsOf: otherParts)
         

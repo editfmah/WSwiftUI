@@ -51,14 +51,14 @@ public class WebVariableElement : WebElement {
         case .double:
             return String(asDouble())
         case .string:
-            return "'\(asString().jsEscaped())'"
+            return "'\(asString())'"
         case .array:
-            let array = asArray().map { "'\($0.jsEscaped())'" }.joined(separator: ",")
+            let array = asArray().map { "'\($0)'" }.joined(separator: ",")
             return "[\(array)]"
         case .object:
             // Assuming object is a dictionary of String: Any
             if let dict = initial as? [String: Any] {
-                let entries = dict.map { "'\($0.key.jsEscaped())': '\($0.value)'" }.joined(separator: ",")
+                let entries = dict.map { "'\($0.key)': '\($0.value)'" }.joined(separator: ",")
                 return "{\(entries)}"
             }
             return "{}"
@@ -431,19 +431,19 @@ public extension CoreWebEndpoint {
             element.addAttribute(.name(element.builderId))
             element.addAttribute(.type("hidden"))
             element.addAttribute(.initialValue(value))
-            element.addAttribute(.value(value.htmlAttrEscaped()))
-
+            element.addAttribute(.value(value))
+            
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
         }
-
+        
         return object
-
+        
     }
-
+    
     @discardableResult
     func WArray(_ values: [String]) -> WebVariableElement {
-
+        
         let object = createVariable { element in
             element.variableType = .array
             element.elementName = "input"
@@ -452,7 +452,7 @@ public extension CoreWebEndpoint {
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
             element.addAttribute(.initialValue(values))
-            element.addAttribute(.value("[\(values.map { "'\($0.jsEscaped())'" }.joined(separator: ","))]"))
+            element.addAttribute(.value("[\(values.map { "'\($0)'" }.joined(separator: ","))]"))
             
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
