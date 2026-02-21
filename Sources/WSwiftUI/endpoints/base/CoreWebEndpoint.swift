@@ -479,42 +479,23 @@ internal extension [WebElement] {
 
 internal extension CoreWebEndpoint {
     func updateWithEphermeralData(_ value: WebVariableElement) {
-
+        
         guard let name = value.internalName else {
             return
         }
-
+        
         if let previousValue = ephemeralData["previous_\(name)"] {
             if let v = previousValue {
-                // Update the value attribute for the HTML element
-                value.addAttribute(.value(ephemeralStringValue(v).htmlAttrEscaped()))
-                // Add a domLoadedScript with the escaped value to override the factory default
-                let escaped = ephemeralStringValue(v).jsEscaped()
-                value.addAttribute(.domLoadedScript("updateWebVariable\(value.builderId)('\(escaped)');"))
+                value.addAttribute(.initialValue(v))
             }
         }
-
+        
         if let errorMessage = ephemeralData ["error_\(name)"] as? String {
             value.errorMessage = errorMessage
         } else {
             value.errorMessage = nil
         }
-
-    }
-
-    /// Extracts a plain String from an ephemeral data value (which may be String, JSONValue, or other types).
-    private func ephemeralStringValue(_ value: Any) -> String {
-        if let s = value as? String { return s }
-        if let jv = value as? JSONValue {
-            switch jv {
-            case .string(let s): return s
-            case .int(let i): return String(i)
-            case .double(let d): return String(d)
-            case .bool(let b): return b ? "true" : "false"
-            default: return "\(jv)"
-            }
-        }
-        return "\(value)"
+        
     }
 }
 

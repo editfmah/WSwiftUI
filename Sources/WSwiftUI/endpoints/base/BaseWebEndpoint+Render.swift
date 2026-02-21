@@ -99,6 +99,7 @@ internal extension CoreWebEndpoint {
         var scripts: [String] = []
         var items: [String] = [] // internal items for combos, dropdowns, segmented controls etc.
         var label: String? = nil
+        var initialValue: Any? = nil
         var value: Any? = nil
         var errorMessage: String? = nil
         var validators: [ValidationCondition] = []
@@ -140,8 +141,8 @@ internal extension CoreWebEndpoint {
                     break;
                 case .label(let text):
                     label = text
-                case .initialValue(_):
-                    break
+                case .initialValue(let value):
+                    initialValue = value
                 case .errorMessage(let message):
                     errorMessage = message
                     classValues.append("border-danger")
@@ -201,8 +202,50 @@ internal extension CoreWebEndpoint {
             let allStyles = styleValues.joined(separator: ";")
             parts.append("style=\"\(allStyles)\"")
         }
-        if let value = value {
-            parts.append("value=\"\(value)\"")
+        if let initialValue = initialValue {
+            // Extract a plain String from Any (handles String, JSONValue.string, Optional wrapping)
+            let stringValue: String? = {
+                if let s = initialValue as? String { return s }
+                if let jv = initialValue as? JSONValue, case .string(let s) = jv { return s }
+                return nil
+            }()
+
+            if let v = stringValue {
+                parts.append("value=\"\(v.htmlAttrEscaped())\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)('\(v.jsEscaped())');")
+            } else if let v = initialValue as? Int {
+                parts.append("value=\"\(v)\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v));")
+            } else if let v = initialValue as? Double {
+                parts.append("value=\"\(v)\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v));")
+            } else if let v = initialValue as? Bool {
+                parts.append("value=\"\(v ? "true" : "false")\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v ? "true" : "false"));")
+            } else if let v = initialValue as? [String: Any] {
+                parts.append("value=\"\(initialValue)\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0.key.jsEscaped())\":\($0.value)" }.joined(separator: ",")));")
+            } else if let v = initialValue as? [String: String] {
+                parts.append("value=\"\(initialValue)\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0.key.jsEscaped())\":\"\($0.value.jsEscaped())\"" }.joined(separator: ",")));")
+            } else if let v = initialValue as? [Int] {
+                parts.append("value=\"\(initialValue)\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\($0)" }.joined(separator: ",")));")
+            } else if let v = initialValue as? [String] {
+                parts.append("value=\"\(initialValue)\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0.jsEscaped())\"" }.joined(separator: ",")));")
+            } else {
+                // Fallback: convert to string and escape
+                let fallback = "\(initialValue)"
+                parts.append("value=\"\(fallback.htmlAttrEscaped())\"")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)('\(fallback.jsEscaped())');")
+            }
+        } else if let value = value {
+            if let str = value as? String {
+                parts.append("value=\"\(str.htmlAttrEscaped())\"")
+            } else {
+                parts.append("value=\"\(value)\"")
+            }
         }
         parts.append(contentsOf: otherParts)
         
