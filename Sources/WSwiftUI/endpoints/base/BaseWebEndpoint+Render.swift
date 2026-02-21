@@ -205,7 +205,7 @@ internal extension CoreWebEndpoint {
         if let initialValue = initialValue {
             parts.append("value=\"\(initialValue)\"")
             if let v = initialValue as? String {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)('\(v)');")
+                domLoadedScripts.append("updateWebVariable\(element.builderId)(`\(v)`);")
             } else if let v = initialValue as? Int {
                 domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v));")
             } else if let v = initialValue as? Double {
