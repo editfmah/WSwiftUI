@@ -880,7 +880,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 }
             case .setVariable(let variable, to: let to):
                 if let stringValue = to as? String {
-                    script += "updateWebVariable\(variable.builderId)('\(stringValue)');\n"
+                    script += "updateWebVariable\(variable.builderId)('\(stringValue.jsEscaped())');\n"
                 } else if let intValue = to as? Int {
                     script += "updateWebVariable\(variable.builderId)(\(intValue));\n"
                 } else if let doubleValue = to as? Double {
@@ -888,7 +888,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 } else if let boolValue = to as? Bool {
                     script += "updateWebVariable\(variable.builderId)(\(boolValue ? "true" : "false"));\n"
                 } else {
-                    script += "updateWebVariable\(variable.builderId)('\(to ?? "")');\n"
+                    script += "updateWebVariable\(variable.builderId)('\("\(to ?? "")".jsEscaped())');\n"
                 }
             case .setInput(let inputName, to: let to):
                 if let stringValue = to as? String {
