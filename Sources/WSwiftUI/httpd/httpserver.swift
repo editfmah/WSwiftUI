@@ -530,21 +530,35 @@ public struct WebSocketFrame: Sendable {
 }
 
 public final class WebSocketConnection: @unchecked Sendable {
-    
+
     internal var endpoint: CoreWebsocketEndpoint?
     public let fd: Int32
     private let writeLock = NSLock()
-    
+    public private(set) var isClosed: Bool = false
+
     public init(fd: Int32) {
         self.fd = fd
     }
-    
+
     deinit {
         // no implicit close; caller owns lifecycle
     }
-    
+
+    /// Mark this connection as closed (prevents further writes)
+    internal func markClosed() {
+        writeLock.lock()
+        isClosed = true
+        writeLock.unlock()
+    }
+
+    /// Safely close the underlying file descriptor
+    public func closeSocket() {
+        markClosed()
+        Darwin.close(fd)
+    }
+
     // MARK: - I/O primitives
-    
+
     private func readExact(_ count: Int) throws -> Data {
         var remaining = count
         var out = Data()
@@ -555,21 +569,36 @@ public final class WebSocketConnection: @unchecked Sendable {
             let r = buf.withUnsafeMutableBytes { p in
                 read(fd, p.baseAddress, toRead)
             }
-            if r == 0 { throw Err.closed }
-            if r < 0 { throw Err.io(errnoString("ws read")) }
+            if r == 0 { markClosed(); throw Err.closed }
+            if r < 0 {
+                let e = errno
+                if e == EINTR { continue }
+                markClosed()
+                throw Err.io(errnoString("ws read"))
+            }
             out.append(contentsOf: buf[0..<r])
             remaining -= r
         }
         return out
     }
-    
+
     private func writeAll(_ data: Data) throws {
+        if isClosed { throw Err.closed }
         try data.withUnsafeBytes { (p: UnsafeRawBufferPointer) in
             var base = p.baseAddress!
             var remaining = p.count
             while remaining > 0 {
                 let w = write(fd, base, remaining)
-                if w < 0 { throw Err.io(errnoString("ws write")) }
+                if w < 0 {
+                    let e = errno
+                    if e == EINTR { continue }
+                    markClosed()
+                    if e == EPIPE || e == ECONNRESET {
+                        throw Err.closed
+                    }
+                    throw Err.io(errnoString("ws write"))
+                }
+                if w == 0 { markClosed(); throw Err.closed }
                 remaining -= w
                 base = base.advanced(by: w)
             }
@@ -692,31 +721,51 @@ public final class WebSocketConnection: @unchecked Sendable {
     }
     
     // MARK: - Public send helpers (servers do not mask)
-    
+
     public func send(frame: WebSocketFrame) throws {
+        writeLock.lock()
+        defer { writeLock.unlock() }
+        if isClosed { throw Err.closed }
         // As a server, do not mask outgoing frames per RFC6455
         let data = serialize(frame: frame, mask: false)
         try writeAll(data)
     }
-    
+
+    /// Non-throwing send that returns false on failure (useful from tick handlers)
+    @discardableResult
+    public func safeSend(frame: WebSocketFrame) -> Bool {
+        do {
+            try send(frame: frame)
+            return true
+        } catch {
+            return false
+        }
+    }
+
     public func sendText(_ text: String) throws {
         try send(frame: WebSocketFrame(fin: true, opcode: .text, payload: Data(text.utf8)))
     }
-    
+
+    /// Non-throwing text send — returns false if the connection is broken
+    @discardableResult
+    public func safeSendText(_ text: String) -> Bool {
+        return safeSend(frame: WebSocketFrame(fin: true, opcode: .text, payload: Data(text.utf8)))
+    }
+
     public func sendBinary(_ data: Data) throws {
         try send(frame: WebSocketFrame(fin: true, opcode: .binary, payload: data))
     }
-    
+
     public func sendPing(_ data: Data = Data()) throws {
         let payload = data.prefix(125) // control frames max 125
         try send(frame: WebSocketFrame(fin: true, opcode: .ping, payload: payload))
     }
-    
+
     public func sendPong(_ data: Data = Data()) throws {
         let payload = data.prefix(125)
         try send(frame: WebSocketFrame(fin: true, opcode: .pong, payload: payload))
     }
-    
+
     public func close(code: UInt16 = 1000, reason: String = "") throws {
         var payload = Data()
         var be = code.bigEndian
@@ -724,6 +773,7 @@ public final class WebSocketConnection: @unchecked Sendable {
         payload.append(reason.data(using: .utf8) ?? Data())
         payload = payload.prefix(125)
         try send(frame: WebSocketFrame(fin: true, opcode: .close, payload: payload))
+        markClosed()
     }
     
     // MARK: - Run loop
@@ -732,28 +782,37 @@ public final class WebSocketConnection: @unchecked Sendable {
     
     // Runs a blocking loop reading frames and invoking the handler. Returns on close or error.
     public func run(handle: FrameHandler) throws {
+        defer { markClosed() }
         loop: while true {
-            let frame = try readMessage()
+            let frame: WebSocketFrame
+            do {
+                frame = try readMessage()
+            } catch {
+                // Connection broken during read — clean exit
+                throw error
+            }
             switch frame.opcode {
                 case .ping:
                     // if handler returns nothing, auto-pong
                     if let responses = handle(frame) {
-                        for r in responses { try send(frame: r) }
+                        for r in responses { _ = safeSend(frame: r) }
                     } else {
-                        try sendPong(frame.payload)
+                        _ = safeSend(frame: WebSocketFrame(fin: true, opcode: .pong, payload: frame.payload))
                     }
                 case .close:
                     // echo close if handler doesn't override
                     if let responses = handle(frame) {
-                        for r in responses { try send(frame: r) }
+                        for r in responses { _ = safeSend(frame: r) }
                     } else {
-                        // attempt to echo and then break
-                        try send(frame: WebSocketFrame(fin: true, opcode: .close, payload: frame.payload))
+                        // best-effort echo — peer may already be gone
+                        _ = safeSend(frame: WebSocketFrame(fin: true, opcode: .close, payload: frame.payload))
                     }
                     break loop
                 default:
                     if let responses = handle(frame) {
-                        for r in responses { try send(frame: r) }
+                        for r in responses {
+                            if !safeSend(frame: r) { break loop }
+                        }
                     }
             }
         }
@@ -805,6 +864,9 @@ public final class HTTPServer: @unchecked Sendable {
     }
     
     public func start() throws {
+        // Ignore SIGPIPE process-wide so broken sockets don't kill the process
+        signal(SIGPIPE, SIG_IGN)
+
 #if os(Linux)
         let sockType = CInt(SOCK_STREAM.rawValue)
 #else
@@ -848,6 +910,11 @@ public final class HTTPServer: @unchecked Sendable {
                 // benign EINTR etc.
                 continue
             }
+            // Prevent SIGPIPE on this socket (macOS)
+            #if !os(Linux)
+            var noSigPipe: Int32 = 1
+            setsockopt(fd, SOL_SOCKET, SO_NOSIGPIPE, &noSigPipe, socklen_t(MemoryLayout<Int32>.size))
+            #endif
             pool.submit { [weak self] in
                 self?.handleConnection(fd: fd)
             }
@@ -948,7 +1015,10 @@ public final class HTTPServer: @unchecked Sendable {
                 read(fd, ptr.baseAddress, 1)
             }
             if r == 0 { throw Err.closed }
-            if r < 0 { throw Err.io(errnoString("read line")) }
+            if r < 0 {
+                if errno == EINTR { continue }
+                throw Err.io(errnoString("read line"))
+            }
             let b = buf[0]
             if lastWasCR && b == 0x0A { // \n
                 data.removeLast() // remove the CR we appended previously
@@ -1031,7 +1101,10 @@ public final class HTTPServer: @unchecked Sendable {
                     read(fd, p.baseAddress, toRead)
                 }
                 if r == 0 { throw Err.closed }
-                if r < 0 { throw Err.io(errnoString("read body")) }
+                if r < 0 {
+                    if errno == EINTR { continue }
+                    throw Err.io(errnoString("read body"))
+                }
                 try buf.withUnsafeBytes { p in
                     try writeChunk(UnsafeRawBufferPointer(start: p.baseAddress, count: r))
                 }
@@ -1069,7 +1142,10 @@ public final class HTTPServer: @unchecked Sendable {
                         read(fd, p.baseAddress, toRead)
                     }
                     if r == 0 { throw Err.closed }
-                    if r < 0 { throw Err.io(errnoString("read chunk")) }
+                    if r < 0 {
+                        if errno == EINTR { continue }
+                        throw Err.io(errnoString("read chunk"))
+                    }
                     try buf.withUnsafeBytes { p in
                         try writeChunk(UnsafeRawBufferPointer(start: p.baseAddress, count: r))
                     }
@@ -1100,19 +1176,31 @@ public final class HTTPServer: @unchecked Sendable {
             var remaining = p.count
             while remaining > 0 {
                 let w = write(fd, base, remaining)
-                if w < 0 { throw Err.io(errnoString("write")) }
+                if w < 0 {
+                    let e = errno
+                    if e == EINTR { continue }
+                    if e == EPIPE || e == ECONNRESET { throw Err.closed }
+                    throw Err.io(errnoString("write"))
+                }
+                if w == 0 { throw Err.closed }
                 remaining -= w
                 base = base.advanced(by: w)
             }
         }
     }
-    
+
     private func writeAll(fd: Int32, _ ptr: UnsafeRawBufferPointer) throws {
         var base = ptr.baseAddress!
         var remaining = ptr.count
         while remaining > 0 {
             let w = write(fd, base, remaining)
-            if w < 0 { throw Err.io(errnoString("write")) }
+            if w < 0 {
+                let e = errno
+                if e == EINTR { continue }
+                if e == EPIPE || e == ECONNRESET { throw Err.closed }
+                throw Err.io(errnoString("write"))
+            }
+            if w == 0 { throw Err.closed }
             remaining -= w
             base = base.advanced(by: w)
         }

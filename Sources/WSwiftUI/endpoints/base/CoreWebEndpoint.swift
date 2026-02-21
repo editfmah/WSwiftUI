@@ -615,31 +615,39 @@ open class CoreWebsocketEndpoint: CoreWebEndpoint, @unchecked Sendable {
         self.onOpen(connection: conn, request: self.request)
 
         // Simple periodic tick using `tickInterval` (default 1s). Override `onTick` in subclass.
-        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
-        let intervalMs = max(1, Int(self.tickInterval * 1000))
-        timer.schedule(deadline: .now() + .milliseconds(intervalMs),
-                       repeating: .milliseconds(intervalMs))
-        timer.setEventHandler { [weak self] in
-            guard let self = self else { return }
-            self.onTick(connection: conn)
+        if tickInterval > 0 {
+            let timer = DispatchSource.makeTimerSource(queue: .global(qos: .userInitiated))
+            let intervalMs = max(1, Int(self.tickInterval * 1000))
+            timer.schedule(deadline: .now() + .milliseconds(intervalMs),
+                           repeating: .milliseconds(intervalMs))
+            timer.setEventHandler { [weak self] in
+                guard let self = self else { return }
+                // Don't call onTick if the connection is already closed
+                guard !conn.isClosed else { return }
+                self.onTick(connection: conn)
+            }
+            self.tickTimer = timer
+            timer.resume()
         }
-        self.tickTimer = timer
-        timer.resume()
 
         // Frame loop
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            guard let self = self else { return }
+            guard let self = self else {
+                conn.closeSocket()
+                return
+            }
+            defer {
+                self.tickTimer?.cancel()
+                self.tickTimer = nil
+                conn.closeSocket()
+            }
             do {
                 try conn.run { [weak self] frame in
                     guard let self = self else { return nil }
                     return self.onFrame(connection: conn, frame: frame)
                 }
-                self.tickTimer?.cancel()
-                self.tickTimer = nil
                 self.onClose(connection: conn, code: nil, reason: nil)
             } catch {
-                self.tickTimer?.cancel()
-                self.tickTimer = nil
                 self.onClose(connection: conn, code: nil, reason: String(describing: error))
             }
         }
