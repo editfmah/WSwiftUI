@@ -359,7 +359,7 @@ public extension CoreWebEndpoint {
     
     @discardableResult
     func WBool(_ value: Bool) -> WebVariableElement {
-        
+
         let object = createVariable { element in
             element.variableType = .bool
             element.elementName = "input"
@@ -368,20 +368,19 @@ public extension CoreWebEndpoint {
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
             element.addAttribute(.value(value ? "true" : "false"))
-            element.addAttribute(.initialValue(value))
-            
+
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
-            
+            element.addAttribute(.domLoadedScript("updateWebVariable\(element.builderId)(\(value ? "true" : "false"));"))
         }
-        
+
         return object
-        
+
     }
-    
+
     @discardableResult
     func WInt(_ value: Int) -> WebVariableElement {
-        
+
         let object = createVariable { element in
             element.variableType = .int
             element.elementName = "input"
@@ -389,19 +388,19 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.initialValue(value))
             element.addAttribute(.value(String(value)))
-            
+
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
+            element.addAttribute(.domLoadedScript("updateWebVariable\(element.builderId)(\(value));"))
         }
-        
+
         return object
     }
-    
+
     @discardableResult
     func WDouble(_ value: Double) -> WebVariableElement {
-        
+
         let object = createVariable { element in
             element.variableType = .double
             element.elementName = "input"
@@ -409,20 +408,20 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.initialValue(value))
             element.addAttribute(.value(String(value)))
-            
+
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
+            element.addAttribute(.domLoadedScript("updateWebVariable\(element.builderId)(\(value));"))
         }
-        
+
         return object
-        
+
     }
-    
+
     @discardableResult
     func WString(_ value: String) -> WebVariableElement {
-        
+
         let object = createVariable { element in
             element.variableType = .string
             element.elementName = "input"
@@ -430,11 +429,11 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.name(element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.initialValue(value))
             element.addAttribute(.value(value.htmlAttrEscaped()))
 
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
+            element.addAttribute(.domLoadedScript("updateWebVariable\(element.builderId)('\(value.jsEscaped())');"))
         }
 
         return object
@@ -451,15 +450,15 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
-            element.addAttribute(.initialValue(values))
             element.addAttribute(.value("[\(values.map { "'\($0.jsEscaped())'" }.joined(separator: ","))]"))
-            
+
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
+            element.addAttribute(.domLoadedScript("updateWebVariable\(element.builderId)([\(values.map { "'\($0.jsEscaped())'" }.joined(separator: ","))]);"))
         }
-        
+
         return object
-        
+
     }
     
 }
