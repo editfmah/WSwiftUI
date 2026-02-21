@@ -130,7 +130,7 @@ public extension CoreWebEndpoint {
         let id = "\(inp.builderId)"
         inp.id(id)
         if let varName = binding.internalName { inp.name(varName) }
-        inp.value(binding.asString())
+        inp.value(binding.asString().htmlAttrEscaped())
         inp.addAttribute(.script("""
 function updateVariable\(inp.builderId)(value) {
     \(inp.builderId).value = value;
@@ -145,10 +145,10 @@ addCallback\(binding.builderId)(updateVariable\(inp.builderId));
     @discardableResult
     func TextArea(value: WebVariableElement)
     -> WebTextAreaElement {
-        
+
         // update with previous session data
         updateWithEphermeralData(value)
-        
+
         let ta = WebTextAreaElement()
         populateCreatedObject(ta)
         ta.elementName = "textarea"
@@ -160,13 +160,16 @@ addCallback\(binding.builderId)(updateVariable\(inp.builderId));
         ta.class("wsui-textarea")
         let id = "\(ta.builderId)"
         ta.id(id)
+        // textarea content goes between tags, not in a value attribute
+        ta.addAttribute(.innerHTML(value.asString().htmlEscaped()))
         ta.addAttribute(.script("""
 function updateVariable\(ta.builderId)(value) {
     \(ta.builderId).value = value;
 }
 addCallback\(value.builderId)(updateVariable\(ta.builderId));
 """))
-        ta.addAttribute(.custom("onChange=\"updateWebVariable\(value.builderId)(this.value);\""))
+        ta.addAttribute(.custom("onchange=\"updateWebVariable\(value.builderId)(this.value);\""))
+        ta.addAttribute(.custom("oninput=\"updateWebVariable\(value.builderId)(this.value);\""))
         return ta
     }
 
