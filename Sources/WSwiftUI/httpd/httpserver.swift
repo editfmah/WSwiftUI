@@ -554,7 +554,11 @@ public final class WebSocketConnection: @unchecked Sendable {
     /// Safely close the underlying file descriptor
     public func closeSocket() {
         markClosed()
+#if os(Linux)
+        Glibc.close(fd)
+#else
         Darwin.close(fd)
+#endif
     }
 
     // MARK: - I/O primitives
