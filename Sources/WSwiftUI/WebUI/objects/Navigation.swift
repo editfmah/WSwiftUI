@@ -115,6 +115,8 @@ public extension CoreWebEndpoint {
     li.elementName = "li"
     li.addAttribute(.class("nav-item"))
 
+    stack.append(li)
+
     let a = WebElement()
     populateCreatedObject(a)
     a.elementName = "a"
@@ -125,7 +127,8 @@ public extension CoreWebEndpoint {
     a.addAttribute(.pair("href", href))
     a.innerHTML(title)
 
-    // a is leaf, no push/pop
+    stack.removeAll(where: { $0.builderId == li.builderId })
+
     return li
   }
 
@@ -140,6 +143,8 @@ public extension CoreWebEndpoint {
     populateCreatedObject(li)
     li.elementName = "li"
     li.addAttribute(.class("nav-item dropdown"))
+
+    stack.append(li)
 
     let toggle = WebElement()
     populateCreatedObject(toggle)
@@ -163,7 +168,8 @@ public extension CoreWebEndpoint {
     // push menu <ul> for its items
     stack.append(menu)
     content()
-    stack.removeLast()
+    stack.removeAll(where: { $0.builderId == menu.builderId })
+    stack.removeAll(where: { $0.builderId == li.builderId })
 
     return li
   }
@@ -178,6 +184,8 @@ public extension CoreWebEndpoint {
     populateCreatedObject(li)
     li.elementName = "li"
 
+    stack.append(li)
+
     let a = WebElement()
     populateCreatedObject(a)
     a.elementName = "a"
@@ -186,6 +194,8 @@ public extension CoreWebEndpoint {
     a.addAttribute(.class(cls))
     a.addAttribute(.pair("href", href))
     a.innerHTML(title)
+
+    stack.removeAll(where: { $0.builderId == li.builderId })
 
     return li
   }
@@ -207,4 +217,3 @@ public extension CoreWebEndpoint {
     return li
   }
 }
-

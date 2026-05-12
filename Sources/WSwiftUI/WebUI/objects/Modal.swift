@@ -254,4 +254,62 @@ public extension CoreWebEndpoint {
         stack.removeAll(where: { $0.builderId == footer.builderId })
         return footer
     }
+    
+    /// SwiftUI-like state-driven modal presentation.
+    @discardableResult
+    func Modal(id: String,
+               isPresented: WebVariableElement,
+               fade: Bool = true,
+               staticBackdrop: Bool = false,
+               _ content: WebComposerClosure) -> WebModalElement {
+        let modal = Modal(id: id, fade: fade, staticBackdrop: staticBackdrop, content)
+        
+        modal.script("""
+        (function() {
+            var el = document.getElementById('\(id)');
+            if (!el) { return; }
+        
+            function syncModal\(modal.builderId)(value) {
+                var instance = bootstrap.Modal.getOrCreateInstance(el);
+                var isShown = el.classList.contains('show');
+                if (value && !isShown) {
+                    instance.show();
+                } else if (!value && isShown) {
+                    instance.hide();
+                }
+            }
+        
+            addCallback\(isPresented.builderId)(syncModal\(modal.builderId));
+            el.addEventListener('shown.bs.modal', function() {
+                updateWebVariable\(isPresented.builderId)(true);
+            });
+            el.addEventListener('hidden.bs.modal', function() {
+                updateWebVariable\(isPresented.builderId)(false);
+            });
+        })();
+        """)
+        
+        modal.addAttribute(.domLoadedScript("""
+        (function() {
+            var el = document.getElementById('\(id)');
+            if (!el) { return; }
+            if (\(isPresented.builderId) === true) {
+                bootstrap.Modal.getOrCreateInstance(el).show();
+            }
+        })();
+        """))
+        
+        return modal
+    }
+    
+    /// Alias for SwiftUI-style `.sheet(isPresented:)`.
+    @discardableResult
+    func Sheet(isPresented: WebVariableElement,
+               id: String? = nil,
+               fade: Bool = true,
+               staticBackdrop: Bool = false,
+               _ content: WebComposerClosure) -> WebModalElement {
+        let sheetId = id ?? "sheet_\(isPresented.builderId)"
+        return Modal(id: sheetId, isPresented: isPresented, fade: fade, staticBackdrop: staticBackdrop, content)
+    }
 }

@@ -19,6 +19,13 @@ public enum WebPickerType : Equatable {
     case colorPicker
 }
 
+public enum PickerStyle {
+    case menu
+    case segmented(BootstrapVariant)
+    case radio(PickerAlignment)
+    case color
+}
+
 // 1) Dedicated subclasses for Picker (dropdown) and its parts
 public class WebPickerElement: WebElement {
     
@@ -137,6 +144,35 @@ public extension CoreWebEndpoint {
         
         return WebPickerElement()
         
+    }
+    
+    @discardableResult
+    func Picker(_ title: String,
+                selection binding: WebVariableElement,
+                style: PickerStyle = .menu,
+                _ content: WebComposerClosure) -> WebPickerElement {
+        let mappedType: WebPickerType
+        switch style {
+            case .menu:
+                mappedType = .combo
+            case .segmented(let variant):
+                mappedType = .segmented(variant)
+            case .radio(let alignment):
+                mappedType = .radio(alignment)
+            case .color:
+                mappedType = .colorPicker
+        }
+        
+        let picker = Picker(type: mappedType, binding: binding, content)
+        picker.label(title)
+        return picker
+    }
+    
+    @discardableResult
+    func Picker(selection binding: WebVariableElement,
+                style: PickerStyle = .menu,
+                _ content: WebComposerClosure) -> WebPickerElement {
+        return Picker("", selection: binding, style: style, content)
     }
     
 }

@@ -8,25 +8,33 @@
 import Foundation
 import WSwiftUI
 
-class ControlsAPI : CoreWebEndpoint, WebEndpoint, WebApiEndpoint {
-    
-    func call() -> Any? {
+private struct UploadResult: Codable {
+    var ok: Bool
+    var filename: String?
+    var size: Int
+    var contentType: String?
+}
 
-        // This is a test API endpoint that returns a simple message
+class ControlsAPI: CoreWebEndpoint, WebEndpoint, WebApiEndpoint {
+    func call() -> Any? {
         if let request = data.file("files[]") {
-            print(request.filename ?? "")
-            return HttpResponse().status(.accepted)
+            let result = UploadResult(
+                ok: true,
+                filename: request.filename,
+                size: request.data?.count ?? 0,
+                contentType: request.contentType
+            )
+            return HttpResponse().status(.ok).content(.json).body(json: result)
         }
-        return HttpResponse().status(.internalError)
-        
+        let result = UploadResult(ok: false, filename: nil, size: 0, contentType: nil)
+        return HttpResponse().status(.badRequest).content(.json).body(json: result)
     }
-    
+
     func acceptedRoles() -> [String]? {
         return []
     }
-    
+
     var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
     var controller: String? = "api"
     var method: String? = "controls"
-    
 }

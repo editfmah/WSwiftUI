@@ -9,9 +9,7 @@ import Foundation
 
 public extension CoreWebEndpoint {
     
-    // MARK: – WBool binding
-    @discardableResult
-    func Toggle(value: WebVariableElement) -> WebElement {
+    fileprivate func createToggle(value: WebVariableElement, title: String?) -> WebElement {
         
         var result: WebElement?
         
@@ -45,7 +43,8 @@ public extension CoreWebEndpoint {
                 element.elementName = "input"
                 element.class("form-check-input")
                 element.type("checkbox")
-                element.id("\(element.builderId)")
+                let inputId = "\(element.builderId)"
+                element.id(inputId)
                 if let varName = value.internalName { element.name(varName) }
                 
                 element.addAttribute(.custom("onChange=\"updateWebVariable\(value.builderId)(this.checked);\""))
@@ -75,11 +74,32 @@ public extension CoreWebEndpoint {
                 
             }
             
+            if let title {
+                let toggleId = result?.builderId ?? ""
+                _ = create { element in
+                    element.elementName = "label"
+                    element.class("form-check-label")
+                    element.addAttribute(.pair("for", toggleId))
+                    element.innerHTML(title.escapedForHTML())
+                }
+            }
+            
             // pop div
             stack.removeAll(where: { $0.builderId == outerDiv.builderId })
             
         }
         return result!
+    }
+    
+    // MARK: – WBool binding
+    @discardableResult
+    func Toggle(value: WebVariableElement) -> WebElement {
+        return createToggle(value: value, title: nil)
+    }
+    
+    @discardableResult
+    func Toggle(_ title: String, isOn value: WebVariableElement) -> WebElement {
+        return createToggle(value: value, title: title)
     }
     
 }

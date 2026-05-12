@@ -192,5 +192,60 @@ public extension CoreWebEndpoint {
         stack.removeAll(where: { $0.builderId == footer.builderId })
         return footer
     }
+    
+    /// SwiftUI-like state-driven off-canvas presentation.
+    @discardableResult
+    func OffCanvas(
+        id: String,
+        isPresented: WebVariableElement,
+        placement: OffCanvasPlacement = .start,
+        backdrop: Bool = true,
+        scrollable: Bool = false,
+        keyboard: Bool = true,
+        _ content: WebComposerClosure
+    ) -> WebOffCanvasElement {
+        let panel = OffCanvas(id: id,
+                              placement: placement,
+                              backdrop: backdrop,
+                              scrollable: scrollable,
+                              keyboard: keyboard,
+                              content)
+        
+        panel.script("""
+        (function() {
+            var el = document.getElementById('\(id)');
+            if (!el) { return; }
+        
+            function syncOffCanvas\(panel.builderId)(value) {
+                var instance = bootstrap.Offcanvas.getOrCreateInstance(el);
+                var isShown = el.classList.contains('show');
+                if (value && !isShown) {
+                    instance.show();
+                } else if (!value && isShown) {
+                    instance.hide();
+                }
+            }
+        
+            addCallback\(isPresented.builderId)(syncOffCanvas\(panel.builderId));
+            el.addEventListener('shown.bs.offcanvas', function() {
+                updateWebVariable\(isPresented.builderId)(true);
+            });
+            el.addEventListener('hidden.bs.offcanvas', function() {
+                updateWebVariable\(isPresented.builderId)(false);
+            });
+        })();
+        """)
+        
+        panel.addAttribute(.domLoadedScript("""
+        (function() {
+            var el = document.getElementById('\(id)');
+            if (!el) { return; }
+            if (\(isPresented.builderId) === true) {
+                bootstrap.Offcanvas.getOrCreateInstance(el).show();
+            }
+        })();
+        """))
+        
+        return panel
+    }
 }
-

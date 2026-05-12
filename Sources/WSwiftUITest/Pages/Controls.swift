@@ -1,83 +1,100 @@
-//
-//  Controls.swift
-//  SWWebAppServer
-//
-//  Created by Adrian on 12/07/2025.
-//
-
 import Foundation
 import WSwiftUI
 
-class ControlsPage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
-    
+class LayoutControlsPage: CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
     var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
-    
+
     var menuPrimary: String = "Controls"
-    
-    var menuSecondary: String?
-    
-    
+
+    var menuSecondary: String? = "Layout & Stacks"
+
     override func content() -> Any? {
-        
-        Template {
-            
-            Jumbotron {
-                JumbotronTitle("Supported Controls")
-            }
-            
-            VStack {
-                
-                Callout(.primary) {
-                    Text("This page demonstrates various form input controls available in WSwiftUI.")
-                }
-                
-                Text("Form input controls:").font(.title)
-                Form(action: self.path) {
-                    HStack {
-                        HStack {
-                            let t = WString("opt2").name("toggle_field")
-                            Picker(type: .radio(.horizontal), binding: t) {
-                                Text("Option 1").value("opt1")
-                                Text("Option 2").value("opt2")
-                                Text("Option 3").value("opt3")
-                            }
-                        }
-                        VStack {
-                            Form {
-                                let wVar = WString("op2").name("name")
-                                TextField(binding: wVar).type(.text).placeholder("placehodler text").label("Text Input").validate([.notEmpty,.atLeast(6)])
-                                Button("Save").variant(.primary).type("SUBMIT").id("btnfade")
-                            }
-                        }
-                    }
-                }
-                
+        return DemoPage(
+            title: "Layout Controls",
+            subtitle: "Demonstrations for VStack, HStack, Flex, Spacer, and layout modifiers."
+        ) {
+            DemoSection(
+                "VStack + HStack",
+                description: "Compose rows and columns with nested stacks.",
+                code: """
+HStack {
+    VStack {
+        Text("Left column")
+    }
+    VStack {
+        Text("Right column")
+    }
+}
+"""
+            ) {
                 HStack {
-                    FileUploader(action: "/api/controls", onUpload: [
-                        .fadeOut(ref: "btnfade", duration: 1.0)
-                    ]) {
-                        Text("Drop Files Here")
-                            .font(.title2)
-                            .foreground(.lightgrey)
+                    VStack {
+                        Badge("Column A", variant: .primary, pill: true)
+                        Text("VStack content")
                     }
+                    VStack {
+                        Badge("Column B", variant: .success, pill: true)
+                        Text("More VStack content")
+                    }
+                }.padding(16).background(.custom("rgba(245,248,255,1)"))
+            }
+
+            DemoSection(
+                "Flex + Spacer",
+                description: "Use Flex for bootstrap-style flex layout and Spacer for flexible gaps.",
+                code: """
+Flex {
+    Badge("Start", variant: .secondary)
+    Spacer()
+    Badge("Middle", variant: .info)
+    Spacer()
+    Badge("End", variant: .dark)
+}
+.alignItems(.center)
+"""
+            ) {
+                Flex {
+                    Badge("Start", variant: .secondary)
+                    Spacer()
+                    Badge("Middle", variant: .info)
+                    Spacer()
+                    Badge("End", variant: .dark)
                 }
-                
-            }.padding(80)
-            
+                .alignItems(.center)
+                .direction(.row)
+                .padding(12)
+                .background(.custom("rgba(245,248,255,1)"))
+            }
+
+            DemoSection(
+                "Layout modifiers",
+                description: "The fluent API supports frame sizing, edge padding/margins, and grouped edges.",
+                code: """
+Text("Framed element")
+    .padding()
+    .frame(width: 320, height: 80, alignment: .center)
+    .margin(.bottom, 12)
+"""
+            ) {
+                Text("Framed element")
+                    .padding()
+                    .frame(width: 320, height: 80, alignment: .center)
+                    .background(.custom("rgba(227, 243, 255, 1)"))
+                    .margin(.bottom, 12)
+
+                Text("Horizontal + vertical edge modifiers")
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(.lightgrey)
+            }
         }
-        
     }
-    
-    override func persist() -> Any? {
-        return redirect(self.path)
-    }
-    
+
     var controller: String? = "controls"
-    
-    var method: String? = nil
-    
+
+    var method: String? = "layout"
+
     func acceptedRoles(for action: WebRequestActivity) -> [String]? {
         return nil
     }
-    
 }

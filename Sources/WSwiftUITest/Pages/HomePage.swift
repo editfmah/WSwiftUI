@@ -1,135 +1,83 @@
-//
-//  test+page.swift
-//  SWWebAppServer
-//
-//  Created by Adrian on 21/06/2025.
-//
-
 import Foundation
 import WSwiftUI
 
-class HomePage : CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
-    
+class HomePage: CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
     var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
-    
+
     var menuPrimary: String = "Home"
-    
+
     var menuSecondary: String?
-    
+
     override func content() -> Any? {
-        
-        Template {
-            
-            let currentTime = WString("")
-            let startTime = WString("\(Date())")
-            
-            HStack {
-                Text("The current UTC time from the server is $0, and it was connected @ $1", currentTime, startTime)
+        let currentTime = WString("connecting...")
+
+        return DemoPage(
+            title: "WSwiftUI Demo App",
+            subtitle: "A complete, categorized showcase of the framework controls and fluent APIs."
+        ) {
+            Callout(.info) {
+                Text("Use the Controls menu to browse dedicated demo pages for layout, content, data display, forms, feedback overlays, navigation, and real-time interactions.")
             }
-            
-            WebSocket(url: "ws:/localhost:4242/ws-ping", onRecieve: [
-                .extractJSONInto(key: "time", into: currentTime)
-            ])
-            
-            VStack {
-                
-                Jumbotron(fluid: true) {
-                    JumbotronTitle("WSwiftUI")
-                    JumbotronSubtitle("A typed Swift framework for building interactive, Bootstrap-style web UIs.")
-                }
-                
-                HStack {}.padding(20)
-                
-                VStack {
-                    Text("About the project").font(.largeTitle).bold().padding(.bottom, 20)
-                    
-                    Text("WSwiftUI is a lightweight framework allowing you to define HTML pages in Swift using a fluent, type-safe API. ")
-                    Text("It handles routing, authentication hooks, server-side DSL for components, and compiles client-side behaviors automatically.")
-                    
-                    HStack {}.padding(20)
-                    
-                    Text("There is an extremely strong focus of rapid application development, with the framework trying to handle all of the basics automatically whilst leaving the developer with the ability to override default behaviours at nearly every level.")
-                    
-                    HStack {}.padding(20)
-                    
-                    Text("Key features").font(.title).padding(.bottom, 10)
-                    Text("   • Type-safe component DSL")
-                    Text("   • Built-in Bootstrap 5 integration")
-                    Text("   • Reactive variables & data binding")
-                    Text("   • Rich client-side actions & events")
-                    Text("   • Menu generation & permission filtering")
-                }.padding(80).background(.custom("rgba(227, 243, 255, 1)"))
-                
-                HStack {}.padding(20)
-                
-                VStack {
-                    
-                    Text("Getting Started").font(.title).padding(.bottom, 10)
-                    
-                    Text("1.   Add WSwiftUI to your package dependencies.")
-                    Text("2.   Create a Web Endpoint, be it a web page or api method.")
-                    Text("3.   Register the endpoint with the server and start it.")
-                    Text("4.   Browse to your configured route and enjoy the interractive UI.")
-                    
-                    Text("Example").font(.title).padding([.top,.bottom], 20)
-                    
-                    HStack {
-                        Code(language: .swift,
+
+            DemoSection(
+                "Live WebSocket control demo",
+                description: "This page binds a WebSocket response into a reactive variable and renders it with Text.",
+                code: """
+let currentTime = WString("connecting...")
+Text("Server UTC time: $0", currentTime)
+WebSocket(url: "ws://localhost:4242/ws-ping", onRecieve: [
+    .extractJSONInto(key: "time", into: currentTime)
+])
 """
-// the main server startup
-import WSwiftUI
+            ) {
+                Text("Server UTC time: $0", currentTime).font(.title2)
+                WebSocket(url: "ws://localhost:4242/ws-ping", onRecieve: [
+                    .extractJSONInto(key: "time", into: currentTime)
+                ])
+            }
 
-let server = WSwiftServer(port: 4242)
-server.register(HomePage())
-
-// now web browsers can connect to http://localhost:4242/home
-""")
-                    }.padding(30).background(.white)
-                    
-                    Text("Content Page Example").font(.title).padding([.top,.bottom], 20)
-                    
-                    HStack {
-                        Code(language: .swift, """
-class HomePage : BaseWebEndpoint, WebEndpoint, MenuIndexable {
-    
-    // the framework maintains the menu structures 
-    var menuPrimary: String = "Example Page"
-    var menuSecondary: String?
-    
-    override func content() -> Any? {
-        Template {
-            VStack {
-                Jumbotron(fluid: true) {
-                    JumbotronTitle("WSwiftUI")
-                    JumbotronSubtitle("Hello, World.")
+            DemoSection(
+                "Demo pages",
+                description: "Each section focuses on a control family and includes live previews plus usage snippets."
+            ) {
+                ListGroup {
+                    ListGroupItem("Overview", variant: .primary).onClick(.navigate("/controls"))
+                    ListGroupItem("Layout & stacks", variant: .secondary).onClick(.navigate("/controls/layout"))
+                    ListGroupItem("Content & media", variant: .secondary).onClick(.navigate("/controls/content"))
+                    ListGroupItem("Data display", variant: .secondary).onClick(.navigate("/controls/data"))
+                    ListGroupItem("Forms & inputs", variant: .secondary).onClick(.navigate("/controls/forms"))
+                    ListGroupItem("Feedback & overlays", variant: .secondary).onClick(.navigate("/controls/feedback"))
+                    ListGroupItem("Navigation shell", variant: .secondary).onClick(.navigate("/controls/navigation"))
+                    ListGroupItem("Realtime & actions", variant: .secondary).onClick(.navigate("/controls/realtime"))
                 }
-            }.padding(80)
-        }
-    }
-    
-    // this example would create an endpoint at http://localhost/example
+            }
+
+            DemoSection(
+                "Minimal endpoint pattern",
+                code: """
+final class ExamplePage: CoreWebEndpoint, WebEndpoint, WebContent {
     var controller: String? = "example"
     var method: String? = nil
-    
-}
-""")
-                    }.padding(30).background(.white)
-                    
-                }.padding(80).background(.custom("rgba(227, 243, 255, 1)"))
-                
-                
-                
-            }.padding(80)
-            
+    var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
+
+    override func content() -> Any? {
+        Template {
+            Text("Hello from WSwiftUI")
         }
     }
-    
+}
+"""
+            ) {
+                Text("Every demo page in this app follows this pattern: endpoint + Template + fluent control composition.")
+            }
+        }
+    }
+
     var controller: String? = nil
-    
+
     var method: String? = nil
-    
+
     func acceptedRoles(for action: WebRequestActivity) -> [String]? {
         return nil
     }
-    
 }

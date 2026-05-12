@@ -195,6 +195,8 @@ public enum WebAreaPosition {
     case trailing
     case top
     case bottom
+    case horizontal
+    case vertical
     case all
 }
 
@@ -629,6 +631,12 @@ public enum WebTranslateDirection: String {
     case y = "translate-middle-y"
 }
 
+public enum WebFrameAlignment {
+    case leading
+    case center
+    case trailing
+}
+
 
 public extension WebElement {
     
@@ -670,6 +678,36 @@ public extension WebElement {
         return self
     }
     
+    /// SwiftUI-like frame modifier.
+    @discardableResult
+    func frame(width: Int? = nil,
+               height: Int? = nil,
+               minWidth: Int? = nil,
+               maxWidth: Int? = nil,
+               minHeight: Int? = nil,
+               maxHeight: Int? = nil,
+               alignment: WebFrameAlignment? = nil) -> Self {
+        if let width { _ = self.width(width) }
+        if let height { _ = self.height(height) }
+        if let minWidth { _ = self.minWidth(minWidth) }
+        if let maxWidth { _ = self.maxWidth(maxWidth) }
+        if let minHeight { _ = self.minHeight(minHeight) }
+        if let maxHeight { _ = self.maxHeight(maxHeight) }
+        
+        if let alignment {
+            switch alignment {
+                case .leading:
+                    addAttribute(.class("align-self-start"))
+                case .center:
+                    addAttribute(.class("align-self-center"))
+                case .trailing:
+                    addAttribute(.class("align-self-end"))
+            }
+        }
+        
+        return self
+    }
+    
     
     // MARK: – Margin & Padding
     
@@ -687,6 +725,14 @@ public extension WebElement {
         case .trailing: prop = "margin-right"
         case .top:      prop = "margin-top"
         case .bottom:   prop = "margin-bottom"
+        case .horizontal:
+            addAttribute(.style("margin-left: \(margin)px"))
+            addAttribute(.style("margin-right: \(margin)px"))
+            return self
+        case .vertical:
+            addAttribute(.style("margin-top: \(margin)px"))
+            addAttribute(.style("margin-bottom: \(margin)px"))
+            return self
         case .all:      prop = "margin"
         }
         addAttribute(.style("\(prop): \(margin)px"))
@@ -720,10 +766,24 @@ public extension WebElement {
         case .trailing: prop = "padding-right"
         case .top:      prop = "padding-top"
         case .bottom:   prop = "padding-bottom"
+        case .horizontal:
+            addAttribute(.style("padding-left: \(padding)px"))
+            addAttribute(.style("padding-right: \(padding)px"))
+            return self
+        case .vertical:
+            addAttribute(.style("padding-top: \(padding)px"))
+            addAttribute(.style("padding-bottom: \(padding)px"))
+            return self
         case .all:      prop = "padding"
         }
         addAttribute(.style("\(prop): \(padding)px"))
         return self
+    }
+    
+    /// SwiftUI-like `padding()` convenience.
+    @discardableResult
+    func padding() -> Self {
+        return padding(16)
     }
     
     @discardableResult
@@ -749,6 +809,14 @@ public extension WebElement {
         case .trailing: prop = "border-right"
         case .top:      prop = "border-top"
         case .bottom:   prop = "border-bottom"
+        case .horizontal:
+            addAttribute(.style("border-left: \(width)px solid \(color.rgba)"))
+            addAttribute(.style("border-right: \(width)px solid \(color.rgba)"))
+            return self
+        case .vertical:
+            addAttribute(.style("border-top: \(width)px solid \(color.rgba)"))
+            addAttribute(.style("border-bottom: \(width)px solid \(color.rgba)"))
+            return self
         case .all:      prop = "border"
         }
         addAttribute(.style("\(prop): \(width)px solid \(color.rgba)"))
@@ -998,7 +1066,5 @@ public extension WebElement {
     }
     
 }
-
-
 
 

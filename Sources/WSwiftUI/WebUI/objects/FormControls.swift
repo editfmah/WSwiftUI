@@ -169,5 +169,45 @@ addCallback\(value.builderId)(updateVariable\(ta.builderId));
         ta.addAttribute(.custom("onChange=\"updateWebVariable\(value.builderId)(this.value);\""))
         return ta
     }
+    
+    /// SwiftUI-style text field signature with title + bound value.
+    @discardableResult
+    func TextField(_ title: String,
+                   text binding: WebVariableElement,
+                   type: InputType = .text,
+                   prompt: String? = nil) -> WebInputElement {
+        let field = TextField(binding: binding, type: type)
+        field.label(title)
+        if let prompt {
+            field.placeholder(prompt)
+        }
+        return field
+    }
+    
+    /// SwiftUI-style secure field convenience.
+    @discardableResult
+    func SecureField(_ title: String,
+                     text binding: WebVariableElement,
+                     prompt: String? = nil) -> WebInputElement {
+        let field = TextField(binding: binding, type: .password)
+        field.label(title)
+        if let prompt {
+            field.placeholder(prompt)
+        }
+        return field
+    }
+    
+    /// SwiftUI-style text area signature with title + bound value.
+    @discardableResult
+    func TextArea(_ title: String,
+                  text value: WebVariableElement,
+                  prompt: String? = nil) -> WebTextAreaElement {
+        let area = TextArea(value: value)
+        area.label(title)
+        if let prompt {
+            area.placeholder(prompt)
+        }
+        return area
+    }
 
 }

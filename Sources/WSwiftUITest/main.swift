@@ -10,8 +10,14 @@ import WSwiftUI
 
 let server = WSwiftServer(port: 4242, bindAddressv4: "0.0.0.0")
 server.register(HomePage())
-server.register(PurposePage())
-server.register(ControlsPage())
+server.register(ControlsOverviewPage())
+server.register(LayoutControlsPage())
+server.register(ContentControlsPage())
+server.register(DataControlsPage())
+server.register(FormControlsPage())
+server.register(FeedbackControlsPage())
+server.register(NavigationControlsPage())
+server.register(RealtimeControlsPage())
 server.register(ControlsAPI())
 server.registerWebSocket(WebsocketEndpointExample())
 

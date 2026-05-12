@@ -85,4 +85,44 @@ public extension CoreWebEndpoint {
         stack.removeAll(where: { $0.builderId == alert.builderId })
         return alert
     }
+    
+    /// SwiftUI-like state-driven alert.
+    @discardableResult
+    func Alert(_ title: String,
+               isPresented: WebVariableElement,
+               variant: BootstrapVariant = .primary,
+               message: String? = nil,
+               dismissible: Bool = false) -> WebAlertElement {
+        let alert = Alert(variant, dismissible: dismissible) {
+            Text(title).bold()
+            if let message {
+                Text(message)
+            }
+        }
+        
+        if !isPresented.asBool() {
+            alert.class("d-none")
+        }
+        
+        alert.script("""
+        function syncAlert\(alert.builderId)(value) {
+            if (value) {
+                \(alert.builderId).classList.remove('d-none');
+            } else {
+                \(alert.builderId).classList.add('d-none');
+            }
+        }
+        addCallback\(isPresented.builderId)(syncAlert\(alert.builderId));
+        """)
+        
+        if dismissible {
+            alert.script("""
+            \(alert.builderId).addEventListener('closed.bs.alert', function() {
+                updateWebVariable\(isPresented.builderId)(false);
+            });
+            """)
+        }
+        
+        return alert
+    }
 }
