@@ -830,6 +830,15 @@ public final class HTTPServer: @unchecked Sendable {
     public typealias HeadCallback = (HttpRequestHead) -> GateDecision
     public typealias BeforeBodyCallback = (HttpRequestHead) -> GateDecision
     public typealias Handler = (HttpRequest) -> HttpResponse
+    public typealias RouteHandler = (HttpRequest) -> HttpResponse
+    
+    private struct WildcardRoute {
+        let pattern: String
+        let regex: NSRegularExpression
+        let literalCount: Int
+        let wildcardCount: Int
+        let handler: RouteHandler
+    }
     
     public struct Config {
         public var host: String = "0.0.0.0"
@@ -840,10 +849,57 @@ public final class HTTPServer: @unchecked Sendable {
         public init() {}
     }
     
-    internal var routes: [String: ((HttpRequest) -> HttpResponse)] = [:]
+    internal var routes: [String: RouteHandler] = [:]
+    private var wildcardRoutes: [WildcardRoute] = []
+    private let routesLock = DispatchQueue(label: "microhttp.routes")
     
-    public func addRoute(_ path: String, handler: @escaping (HttpRequest) -> HttpResponse) {
-        routes[path] = handler
+    public func addRoute(_ path: String, handler: @escaping RouteHandler) {
+        routesLock.sync {
+            if path.contains("*") {
+                if let regex = Self.wildcardRegex(for: path) {
+                    wildcardRoutes.removeAll(where: { $0.pattern == path })
+                    wildcardRoutes.append(WildcardRoute(
+                        pattern: path,
+                        regex: regex,
+                        literalCount: path.filter({ $0 != "*" }).count,
+                        wildcardCount: path.filter({ $0 == "*" }).count,
+                        handler: handler
+                    ))
+                    wildcardRoutes.sort {
+                        if $0.literalCount != $1.literalCount { return $0.literalCount > $1.literalCount }
+                        if $0.wildcardCount != $1.wildcardCount { return $0.wildcardCount < $1.wildcardCount }
+                        return $0.pattern.count > $1.pattern.count
+                    }
+                } else {
+                    routes[path] = handler
+                }
+                return
+            }
+            
+            routes[path] = handler
+        }
+    }
+    
+    internal func routeHandler(for path: String) -> RouteHandler? {
+        routesLock.sync {
+            if let exact = routes[path] {
+                return exact
+            }
+            
+            let fullRange = NSRange(location: 0, length: path.utf16.count)
+            for wildcard in wildcardRoutes {
+                if wildcard.regex.firstMatch(in: path, options: [], range: fullRange) != nil {
+                    return wildcard.handler
+                }
+            }
+            return nil
+        }
+    }
+    
+    private static func wildcardRegex(for path: String) -> NSRegularExpression? {
+        let escaped = NSRegularExpression.escapedPattern(for: path)
+        let pattern = "^" + escaped.replacingOccurrences(of: "\\*", with: ".*") + "$"
+        return try? NSRegularExpression(pattern: pattern)
     }
     
     private let cfg: Config
@@ -1286,4 +1342,3 @@ public final class HTTPServer: @unchecked Sendable {
         }
     }
 }
-
