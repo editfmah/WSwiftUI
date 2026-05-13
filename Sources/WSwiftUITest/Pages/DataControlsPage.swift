@@ -151,6 +151,40 @@ Carousel(id: "demoCarousel", interval: 2500, fade: true) {
                     CarouselControlNext(id: "demoCarousel")
                 }
             }
+
+            DemoSection(
+                "Chart",
+                description: "Chart imports Chart.js automatically on use and renders using typed ChartData/ChartDataSet models.",
+                code: """
+let salesSplit = ChartDataSet(label: "Sales split", values: [4, 3, 2, 1])
+    .background([.blue, .green, .orange, .purple])
+    .border(.white)
+    .borderWidth(2)
+
+Chart(
+    type: .doughnut,
+    data: ChartData(
+        labels: ["Enterprise", "Pro", "Starter", "Trials"],
+        dataSets: [salesSplit]
+    ),
+    options: ChartOptions(maintainAspectRatio: true, title: "Sales split by plan")
+)
+"""
+            ) {
+                let salesSplit = ChartDataSet(label: "Sales split", values: [4, 3, 2, 1])
+                    .background([.blue, .green, .orange, .purple])
+                    .border(.white)
+                    .borderWidth(2)
+
+                Chart(
+                    type: .doughnut,
+                    data: ChartData(
+                        labels: ["Enterprise", "Pro", "Starter", "Trials"],
+                        dataSets: [salesSplit]
+                    ),
+                    options: ChartOptions(maintainAspectRatio: true, title: "Sales split by plan")
+                )
+            }
         }
     }
 
