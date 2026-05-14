@@ -47,7 +47,7 @@ public extension CoreWebEndpoint {
                 element.id(inputId)
                 if let varName = value.internalName { element.name(varName) }
                 
-                element.addAttribute(.custom("onChange=\"updateWebVariable\(value.builderId)(this.checked);\""))
+                element.addAttribute(.custom("onchange=\"updateWebVariable\(value.builderId)(this.checked, { source: 'change', origin: '\(element.builderId)' });\""))
                 
                 // initial value
                 if value.asBool() {
@@ -56,7 +56,7 @@ public extension CoreWebEndpoint {
                 
                 // register callbacks for updates to the bound variable
                 element.script("""
-                    function updateVariable\(element.builderId)(value) {
+                    function updateVariable\(element.builderId)(value, _meta) {
                         var isChecked = (value === true || value === 'true' || value === 1 || value === '1');
 
                         // Update the checkbox state

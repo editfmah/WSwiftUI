@@ -83,10 +83,10 @@ public extension CoreWebEndpoint {
                         el.addAttribute(.errorMessage(binding.errorMessage!))
                     }
                     el.type = type
-                    el.addAttribute(.custom("onChange=\"updateWebVariable\(binding.builderId)(this.value);\""))
+                    el.addAttribute(.custom("onchange=\"updateWebVariable\(binding.builderId)(this.value, { source: 'change', origin: '\(el.builderId)' });\""))
                     // register callbacks for updates to the bound variable
                     el.script("""
-                        function updateVariable\(el.builderId)(value) {
+                        function updateVariable\(el.builderId)(value, _meta) {
                                 \(el.builderId).value = value;
                         }
                         addCallback\(binding.builderId)(updateVariable\(el.builderId));
@@ -100,9 +100,6 @@ public extension CoreWebEndpoint {
                 content()
                 // pop menu and picker
                 stack.removeAll(where: { $0.builderId == picker.builderId })
-                picker.addAttribute(.script("\(binding.builderId) = \(picker.builderId).value;"))
-                // if there is a binding, generate javascript to read the current value from the binding and select the current
-                
                 return picker
             case .segmented:
                 let picker = createPicker { el in
@@ -119,6 +116,21 @@ public extension CoreWebEndpoint {
                 stack.append(picker)
                 // items go here
                 content()
+                if let varName = binding.internalName {
+                    _ = create { element in
+                        element.elementName = "input"
+                        element.type("hidden")
+                        element.name(varName)
+                        element.value(binding.asString())
+                        element.class("wsui-picker-hidden-binding")
+                        element.script("""
+                            function updateVariable\(element.builderId)(value, _meta) {
+                                \(element.builderId).value = value;
+                            }
+                            addCallback\(binding.builderId)(updateVariable\(element.builderId));
+                        """)
+                    }
+                }
                 // pop menu and picker
                 stack.removeAll(where: { $0.builderId == picker.builderId })
                 return picker

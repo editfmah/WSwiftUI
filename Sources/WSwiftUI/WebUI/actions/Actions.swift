@@ -514,7 +514,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                         var tempArray\(variable.builderId) = JSON.parse(\(variable.builderId));
                         if (Array.isArray(tempArray\(variable.builderId))) {
                             tempArray\(variable.builderId).push('\(value)');
-                            updateWebVariable\(variable.builderId)(tempArray\(variable.builderId));
+                            updateWebVariable\(variable.builderId)(tempArray\(variable.builderId), { source: 'action.addToArray', origin: '\(builderId)' });
                         }
                     }
                     """
@@ -528,7 +528,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             var index = tempArray\(variable.builderId).indexOf('\(value)');
                             if (index !== -1) {
                                 tempArray\(variable.builderId).splice(index, 1);
-                                updateWebVariable\(variable.builderId)(tempArray\(variable.builderId));
+                                updateWebVariable\(variable.builderId)(tempArray\(variable.builderId), { source: 'action.removeFromArray', origin: '\(builderId)' });
                             }
                         }
                     }
@@ -547,7 +547,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                             } else {
                                 tempArray\(variable.builderId).push('\(value)');
                             }
-                            updateWebVariable\(variable.builderId)(tempArray\(variable.builderId));
+                            updateWebVariable\(variable.builderId)(tempArray\(variable.builderId), { source: 'action.toggleArray', origin: '\(builderId)' });
                         }
                     }
                     """
@@ -758,7 +758,7 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                     script += "if (\(variable.builderId) \(condition.javascriptCondition)) {\n\(ifScript)\n}\n"
                 }
             case .toggle(let value):
-                script += "updateWebVariable\(value.builderId)(!\(value.builderId));\n"
+                script += "updateWebVariable\(value.builderId)(!\(value.builderId), { source: 'action.toggle', origin: '\(builderId)' });\n"
             case .foregroundColor(ref: let ref, let color):
                 if let ref = ref {
                     script += "document.getElementById('\(ref)').style.color = '\(color.rgba)';\n"
@@ -880,15 +880,15 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 }
             case .setVariable(let variable, to: let to):
                 if let stringValue = to as? String {
-                    script += "updateWebVariable\(variable.builderId)('\(stringValue)');\n"
+                    script += "updateWebVariable\(variable.builderId)('\(stringValue)', { source: 'action.setVariable', origin: '\(builderId)' });\n"
                 } else if let intValue = to as? Int {
-                    script += "updateWebVariable\(variable.builderId)(\(intValue));\n"
+                    script += "updateWebVariable\(variable.builderId)(\(intValue), { source: 'action.setVariable', origin: '\(builderId)' });\n"
                 } else if let doubleValue = to as? Double {
-                    script += "updateWebVariable\(variable.builderId)(\(doubleValue));\n"
+                    script += "updateWebVariable\(variable.builderId)(\(doubleValue), { source: 'action.setVariable', origin: '\(builderId)' });\n"
                 } else if let boolValue = to as? Bool {
-                    script += "updateWebVariable\(variable.builderId)(\(boolValue ? "true" : "false"));\n"
+                    script += "updateWebVariable\(variable.builderId)(\(boolValue ? "true" : "false"), { source: 'action.setVariable', origin: '\(builderId)' });\n"
                 } else {
-                    script += "updateWebVariable\(variable.builderId)('\(to ?? "")');\n"
+                    script += "updateWebVariable\(variable.builderId)('\(to ?? "")', { source: 'action.setVariable', origin: '\(builderId)' });\n"
                 }
             case .setInput(let inputName, to: let to):
                 if let stringValue = to as? String {
@@ -1095,14 +1095,14 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
             case .localStorageSet(let key, let value):
                 script += "localStorage.setItem('\(key)', JSON.stringify(\(value.builderId)));\n"
             case .localStorageGet(let key, let into):
-                script += "(function(){ var v = localStorage.getItem('\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
+                script += "(function(){ var v = localStorage.getItem('\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v, { source: 'action.localStorageGet', origin: '\(builderId)' }); })();\n"
             case .localStorageRemove(let key):
                 script += "localStorage.removeItem('\(key)');\n"
                 
             case .sessionStorageSet(let key, let value):
                 script += "sessionStorage.setItem('\(key)', JSON.stringify(\(value.builderId)));\n"
             case .sessionStorageGet(let key, let into):
-                script += "(function(){ var v = sessionStorage.getItem('\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v); })();\n"
+                script += "(function(){ var v = sessionStorage.getItem('\(key)'); try { v = JSON.parse(v); } catch(e){} updateWebVariable\(into.builderId)(v, { source: 'action.sessionStorageGet', origin: '\(builderId)' }); })();\n"
             case .sessionStorageRemove(let key):
                 script += "sessionStorage.removeItem('\(key)');\n"
                 
@@ -1203,9 +1203,9 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 script += "if (window.confirm('\(message)')) {\n\(yesScript)\n} else {\n\(noScript)\n}\n"
                 
             case .setVariableFromExpression(let into, let expression):
-                script += "updateWebVariable\(into.builderId)((function(){ try { return (\(expression)); } catch(e){ return null; } })());\n"
+                script += "updateWebVariable\(into.builderId)((function(){ try { return (\(expression)); } catch(e){ return null; } })(), { source: 'action.setVariableFromExpression', origin: '\(builderId)' });\n"
             case .regexExtract(let source, let pattern, let group, let into):
-                script += "(function(s, re, g){ try { var r = new RegExp(re).exec(String(s)); var v = (r && r.length > g) ? r[g] : null; updateWebVariable\(into.builderId)(v); } catch(e){ updateWebVariable\(into.builderId)(null); } })(\(source.builderId), '\(pattern.replacingOccurrences(of: "\\", with: "\\\\"))', \(group));\n"
+                script += "(function(s, re, g){ try { var r = new RegExp(re).exec(String(s)); var v = (r && r.length > g) ? r[g] : null; updateWebVariable\(into.builderId)(v, { source: 'action.regexExtract', origin: '\(builderId)' }); } catch(e){ updateWebVariable\(into.builderId)(null, { source: 'action.regexExtract', origin: '\(builderId)' }); } })(\(source.builderId), '\(pattern.replacingOccurrences(of: "\\", with: "\\\\"))', \(group));\n"
                 
             case .setAria(let ref, let name, let value):
                 let tAria = ref.map { "document.getElementById('\($0)')" } ?? builderId
@@ -1238,7 +1238,6 @@ public enum ScrollAlignment: String {
     case end
     case nearest
 }
-
 
 
 

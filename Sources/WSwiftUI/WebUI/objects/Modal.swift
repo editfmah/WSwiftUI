@@ -269,7 +269,7 @@ public extension CoreWebEndpoint {
             var el = document.getElementById('\(id)');
             if (!el) { return; }
         
-            function syncModal\(modal.builderId)(value) {
+            function syncModal\(modal.builderId)(value, _meta) {
                 var instance = bootstrap.Modal.getOrCreateInstance(el);
                 var isShown = el.classList.contains('show');
                 if (value && !isShown) {
@@ -281,10 +281,10 @@ public extension CoreWebEndpoint {
         
             addCallback\(isPresented.builderId)(syncModal\(modal.builderId));
             el.addEventListener('shown.bs.modal', function() {
-                updateWebVariable\(isPresented.builderId)(true);
+                updateWebVariable\(isPresented.builderId)(true, { source: 'shown.bs.modal', origin: '\(id)' });
             });
             el.addEventListener('hidden.bs.modal', function() {
-                updateWebVariable\(isPresented.builderId)(false);
+                updateWebVariable\(isPresented.builderId)(false, { source: 'hidden.bs.modal', origin: '\(id)' });
             });
         })();
         """)

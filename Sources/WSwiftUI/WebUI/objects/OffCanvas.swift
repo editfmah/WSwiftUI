@@ -216,7 +216,7 @@ public extension CoreWebEndpoint {
             var el = document.getElementById('\(id)');
             if (!el) { return; }
         
-            function syncOffCanvas\(panel.builderId)(value) {
+            function syncOffCanvas\(panel.builderId)(value, _meta) {
                 var instance = bootstrap.Offcanvas.getOrCreateInstance(el);
                 var isShown = el.classList.contains('show');
                 if (value && !isShown) {
@@ -228,10 +228,10 @@ public extension CoreWebEndpoint {
         
             addCallback\(isPresented.builderId)(syncOffCanvas\(panel.builderId));
             el.addEventListener('shown.bs.offcanvas', function() {
-                updateWebVariable\(isPresented.builderId)(true);
+                updateWebVariable\(isPresented.builderId)(true, { source: 'shown.bs.offcanvas', origin: '\(id)' });
             });
             el.addEventListener('hidden.bs.offcanvas', function() {
-                updateWebVariable\(isPresented.builderId)(false);
+                updateWebVariable\(isPresented.builderId)(false, { source: 'hidden.bs.offcanvas', origin: '\(id)' });
             });
         })();
         """)

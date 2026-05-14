@@ -5,6 +5,8 @@
 //  Created by Adrian on 04/07/2025.
 //
 
+import Foundation
+
 let tab = "    "
 
 fileprivate extension WebElement {
@@ -170,11 +172,12 @@ internal extension CoreWebEndpoint {
             
             switch picker.type {
                 case .combo:
+                    let boundValue = picker.value?.asString()
                     // render all items as <option> elements
                     for item in subItems {
                         if case .item(let item) = item {
                             var option = "<option value=\"\(item.value)\""
-                            if item.isSelected { option += " selected" }
+                            if item.isSelected || (boundValue != nil && item.value == boundValue) { option += " selected" }
                             if item.isDisabled { option += " disabled" }
                             option += ">\(item.title)</option>"
                             items.append(option)
@@ -202,24 +205,53 @@ internal extension CoreWebEndpoint {
             let allStyles = styleValues.joined(separator: ";")
             parts.append("style=\"\(allStyles)\"")
         }
+        
+        func escapedForJSString(_ value: String) -> String {
+            return value
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+                .replacingOccurrences(of: "\n", with: "\\n")
+                .replacingOccurrences(of: "\r", with: "\\r")
+                .replacingOccurrences(of: "\t", with: "\\t")
+        }
+        
+        func jsLiteral(for raw: Any) -> String? {
+            if let v = raw as? Bool { return v ? "true" : "false" }
+            if let v = raw as? Int { return String(v) }
+            if let v = raw as? Double { return String(v) }
+            if let v = raw as? String { return "'\(escapedForJSString(v))'" }
+            if let v = raw as? [String],
+               let data = try? JSONSerialization.data(withJSONObject: v, options: []),
+               let json = String(data: data, encoding: .utf8) {
+                return json
+            }
+            if let v = raw as? [Int],
+               let data = try? JSONSerialization.data(withJSONObject: v, options: []),
+               let json = String(data: data, encoding: .utf8) {
+                return json
+            }
+            if let v = raw as? [String: String],
+               let data = try? JSONSerialization.data(withJSONObject: v, options: []),
+               let json = String(data: data, encoding: .utf8) {
+                return json
+            }
+            if let v = raw as? [String: Any],
+               JSONSerialization.isValidJSONObject(v),
+               let data = try? JSONSerialization.data(withJSONObject: v, options: []),
+               let json = String(data: data, encoding: .utf8) {
+                return json
+            }
+            return nil
+        }
+        
         if let initialValue = initialValue {
-            parts.append("value=\"\(initialValue)\"")
-            if let v = initialValue as? String {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(`\(v)`);")
-            } else if let v = initialValue as? Int {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v));")
-            } else if let v = initialValue as? Double {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v));")
-            } else if let v = initialValue as? Bool {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v ? "true" : "false"));")
-            } else if let v = initialValue as? [String: Any] {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0)\":\($1)" }.joined(separator: ",")));")
-            } else if let v = initialValue as? [String: String] {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0)\":\"\($1)\"" }.joined(separator: ",")));")
-            } else if let v = initialValue as? [Int] {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\($0)" }.joined(separator: ",")));")
-            } else if let v = initialValue as? [String] {
-                domLoadedScripts.append("updateWebVariable\(element.builderId)(\(v.map { "\"\($0)\"" }.joined(separator: ",")));")
+            // For variable-backed hidden inputs we rely on explicit `.value(...)`
+            // attributes and use initialValue only for JS-side variable sync.
+            if !(element is WebVariableElement) {
+                parts.append("value=\"\(initialValue)\"")
+            }
+            if let initialLiteral = jsLiteral(for: initialValue) {
+                domLoadedScripts.append("if (typeof updateWebVariable\(element.builderId) === 'function') { updateWebVariable\(element.builderId)(\(initialLiteral), { source: 'initial' }); }")
             }
         } else if let value = value {
             parts.append("value=\"\(value)\"")

@@ -311,7 +311,7 @@ public class WebElement {
     @discardableResult
     public func hidden(_ hidden: WebVariableElement) -> Self {
         addAttribute(.script("""
-            function updateVariable\(builderId)(value) {
+            function updateVariable\(builderId)(value, _meta) {
                 if (value) {
                     \(builderId).classList.add("visually-hidden");
                 } else {
@@ -330,11 +330,19 @@ public class WebElement {
     @discardableResult
     public func disabled(_ disabled: WebVariableElement) -> Self {
         addAttribute(.script("""
-            function updateVariable\(builderId)(value) {
+            function updateVariable\(builderId)(value, _meta) {
                 if (value) {
                     \(builderId).classList.add("disabled");
+                    \(builderId).setAttribute("aria-disabled", "true");
+                    if ("disabled" in \(builderId)) {
+                        \(builderId).disabled = true;
+                    }
                 } else {
                     \(builderId).classList.remove("disabled");
+                    \(builderId).removeAttribute("aria-disabled");
+                    if ("disabled" in \(builderId)) {
+                        \(builderId).disabled = false;
+                    }
                 }
             }
             addCallback\(disabled.builderId)(updateVariable\(builderId));
@@ -484,16 +492,140 @@ internal extension CoreWebEndpoint {
             return
         }
         
-        if let previousValue = ephemeralData["previous_\(name)"] {
-            if let v = previousValue {
-                if value.variableType == .string {
-                    if let stringValue = v as? String {
-                        value.setInitialValue(stringValue)
-                    } else {
-                        value.setInitialValue(String(describing: v))
+        func anyFromJSONValue(_ json: JSONValue) -> Any {
+            switch json {
+                case .string(let s): return s
+                case .int(let i): return i
+                case .double(let d): return d
+                case .bool(let b): return b
+                case .array(let arr): return arr.map { anyFromJSONValue($0) }
+                case .object(let obj):
+                    var mapped: [String: Any] = [:]
+                    for (k, v) in obj {
+                        mapped[k] = anyFromJSONValue(v)
                     }
+                    return mapped
+                case .null: return ""
+            }
+        }
+        
+        func parseBool(_ raw: Any) -> Bool {
+            if let b = raw as? Bool { return b }
+            if let i = raw as? Int { return i != 0 }
+            if let d = raw as? Double { return d != 0 }
+            if let s = raw as? String {
+                let lowered = s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                return lowered == "true" || lowered == "1" || lowered == "yes" || lowered == "on"
+            }
+            return false
+        }
+        
+        func parseInt(_ raw: Any) -> Int {
+            if let i = raw as? Int { return i }
+            if let d = raw as? Double { return Int(d) }
+            if let s = raw as? String, let i = Int(s) { return i }
+            return 0
+        }
+        
+        func parseDouble(_ raw: Any) -> Double {
+            if let d = raw as? Double { return d }
+            if let i = raw as? Int { return Double(i) }
+            if let s = raw as? String, let d = Double(s) { return d }
+            return 0
+        }
+        
+        func parseString(_ raw: Any) -> String {
+            if let s = raw as? String { return s }
+            if let b = raw as? Bool { return b ? "true" : "false" }
+            if let i = raw as? Int { return String(i) }
+            if let d = raw as? Double { return String(d) }
+            return String(describing: raw)
+        }
+        
+        func parseStringArray(_ raw: Any) -> [String] {
+            if let arr = raw as? [String] { return arr }
+            if let arr = raw as? [Any] { return arr.map { String(describing: $0) } }
+            if let s = raw as? String {
+                let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmed.isEmpty { return [] }
+                if let data = trimmed.data(using: .utf8),
+                   let arr = try? JSONSerialization.jsonObject(with: data) as? [Any] {
+                    return arr.map { String(describing: $0) }
                 }
-                value.addAttribute(.initialValue(v))
+                return trimmed.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            }
+            return []
+        }
+        
+        func parseObject(_ raw: Any) -> [String: Any] {
+            if let obj = raw as? [String: Any], JSONSerialization.isValidJSONObject(obj) {
+                return obj
+            }
+            if let s = raw as? String,
+               let data = s.data(using: .utf8),
+               let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               JSONSerialization.isValidJSONObject(obj) {
+                return obj
+            }
+            return [:]
+        }
+        
+        func jsonString(from object: Any) -> String? {
+            guard JSONSerialization.isValidJSONObject(object),
+                  let data = try? JSONSerialization.data(withJSONObject: object, options: []),
+                  let string = String(data: data, encoding: .utf8) else {
+                return nil
+            }
+            return string
+        }
+        
+        if let previousValue = ephemeralData["previous_\(name)"] {
+            if let rawValue = previousValue {
+                let sourceValue: Any
+                if let jsonValue = rawValue as? JSONValue {
+                    sourceValue = anyFromJSONValue(jsonValue)
+                } else {
+                    sourceValue = rawValue
+                }
+                
+                let normalizedValue: Any
+                let serializedForHidden: String
+                
+                switch value.variableType {
+                    case .bool:
+                        let normalized = parseBool(sourceValue)
+                        normalizedValue = normalized
+                        serializedForHidden = normalized ? "true" : "false"
+                    case .int:
+                        let normalized = parseInt(sourceValue)
+                        normalizedValue = normalized
+                        serializedForHidden = String(normalized)
+                    case .double:
+                        let normalized = parseDouble(sourceValue)
+                        normalizedValue = normalized
+                        serializedForHidden = String(normalized)
+                    case .string:
+                        let normalized = parseString(sourceValue)
+                        normalizedValue = normalized
+                        serializedForHidden = normalized
+                    case .array:
+                        let normalized = parseStringArray(sourceValue)
+                        normalizedValue = normalized
+                        serializedForHidden = jsonString(from: normalized) ?? "[]"
+                    case .object:
+                        let normalized = parseObject(sourceValue)
+                        normalizedValue = normalized
+                        serializedForHidden = jsonString(from: normalized) ?? "{}"
+                }
+                
+                value.setInitialValue(normalizedValue)
+                value.attributes.removeAll(where: {
+                    if case .initialValue = $0 { return true }
+                    if case .value = $0 { return true }
+                    return false
+                })
+                value.addAttribute(.initialValue(normalizedValue))
+                value.addAttribute(.value(serializedForHidden))
             }
         }
         

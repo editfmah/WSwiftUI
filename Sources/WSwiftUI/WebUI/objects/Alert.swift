@@ -105,7 +105,7 @@ public extension CoreWebEndpoint {
         }
         
         alert.script("""
-        function syncAlert\(alert.builderId)(value) {
+        function syncAlert\(alert.builderId)(value, _meta) {
             if (value) {
                 \(alert.builderId).classList.remove('d-none');
             } else {
@@ -118,7 +118,7 @@ public extension CoreWebEndpoint {
         if dismissible {
             alert.script("""
             \(alert.builderId).addEventListener('closed.bs.alert', function() {
-                updateWebVariable\(isPresented.builderId)(false);
+                updateWebVariable\(isPresented.builderId)(false, { source: 'closed.bs.alert', origin: '\(alert.builderId)' });
             });
             """)
         }

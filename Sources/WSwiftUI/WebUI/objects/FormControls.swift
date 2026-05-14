@@ -132,12 +132,13 @@ public extension CoreWebEndpoint {
         if let varName = binding.internalName { inp.name(varName) }
         inp.value(binding.asString())
         inp.addAttribute(.script("""
-function updateVariable\(inp.builderId)(value) {
+function updateVariable\(inp.builderId)(value, _meta) {
     \(inp.builderId).value = value;
 }
 addCallback\(binding.builderId)(updateVariable\(inp.builderId));
 """))
-        inp.addAttribute(.custom("onChange=\"updateWebVariable\(binding.builderId)(this.value);\""))
+        inp.addAttribute(.custom("oninput=\"updateWebVariable\(binding.builderId)(this.value, { source: 'input', origin: '\(inp.builderId)' });\""))
+        inp.addAttribute(.custom("onchange=\"updateWebVariable\(binding.builderId)(this.value, { source: 'change', origin: '\(inp.builderId)' });\""))
         return inp
     }
 
@@ -158,15 +159,23 @@ addCallback\(binding.builderId)(updateVariable\(inp.builderId));
         if let varName = value.internalName { ta.name(varName) }
         ta.class("form-control")
         ta.class("wsui-textarea")
+        // Populate visible textarea content from the bound value so submitted
+        // form data reflects the current binding even before any client callback.
+        let escapedText = value.asString()
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+        ta.innerHTML(escapedText)
         let id = "\(ta.builderId)"
         ta.id(id)
         ta.addAttribute(.script("""
-function updateVariable\(ta.builderId)(value) {
+function updateVariable\(ta.builderId)(value, _meta) {
     \(ta.builderId).value = value;
 }
 addCallback\(value.builderId)(updateVariable\(ta.builderId));
 """))
-        ta.addAttribute(.custom("onChange=\"updateWebVariable\(value.builderId)(this.value);\""))
+        ta.addAttribute(.custom("oninput=\"updateWebVariable\(value.builderId)(this.value, { source: 'input', origin: '\(ta.builderId)' });\""))
+        ta.addAttribute(.custom("onchange=\"updateWebVariable\(value.builderId)(this.value, { source: 'change', origin: '\(ta.builderId)' });\""))
         return ta
     }
     

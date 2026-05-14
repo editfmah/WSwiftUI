@@ -166,23 +166,24 @@ public extension CoreWebEndpoint {
                     element.class("form-check-input")
                     element.type("radio")
                     element.id("\(element.builderId)")
-                    element.name(parent.builderId)
+                    if let bindingName = value?.internalName {
+                        element.name(bindingName)
+                    } else {
+                        element.name(parent.builderId)
+                    }
                     element.label(text)
                     
                     if let value {
-                        element.addAttribute(.custom("onChange=\"if (this.checked) { updateWebVariable\(value.builderId)(this.value); };\""))
-                        // initial value
-                        if value.asBool() {
-                            element.checked()
-                        }
+                        element.addAttribute(.custom("onchange=\"if (this.checked) { updateWebVariable\(value.builderId)(this.value, { source: 'change', origin: '\(element.builderId)' }); }\""))
                         // register callbacks for updates to the bound variable
                         element.script("""
-                            function updateVariable\(element.builderId)(value) {
+                            function updateVariable\(element.builderId)(value, _meta) {
                                 // (Optional) keep the attribute in sync for SSR/HTML snapshots
                                 if (value == \(element.builderId).value) {
                                     \(element.builderId).checked = true;
                                     \(element.builderId).setAttribute('checked', 'checked');
                                 } else {
+                                    \(element.builderId).checked = false;
                                     \(element.builderId).removeAttribute('checked');
                                 }
                             }
@@ -216,13 +217,7 @@ public extension CoreWebEndpoint {
                     switch parent.type {
                     case .segmented(let variant):
                         thisVariant = variant.rawValue
-                        if let value {
-                            if value.asBool() {
-                                element.class("btn-\(thisVariant)")
-                            } else {
-                                element.class("btn-outline-\(thisVariant)")
-                            }
-                        }
+                        element.class("btn-outline-\(thisVariant)")
                     default:
                         break
                     }
@@ -233,10 +228,10 @@ public extension CoreWebEndpoint {
                     element.innerHTML(text.escapedForHTML())
                     
                     if let value {
-                        element.addAttribute(.custom("onClick=\"updateWebVariable\(value.builderId)(this.value);\""))
+                        element.addAttribute(.custom("onclick=\"updateWebVariable\(value.builderId)(this.value, { source: 'click', origin: '\(element.builderId)' });\""))
                         // register callbacks for updates to the bound variable
                         element.script("""
-                            function updateVariable\(element.builderId)(value) {
+                            function updateVariable\(element.builderId)(value, _meta) {
                                 // look through all of the buttons in this group and set them to 
                                 var thisGroup = document.querySelectorAll('.\(parent.builderId)');
                                 thisGroup.forEach(function(btn) {
@@ -291,7 +286,7 @@ public extension CoreWebEndpoint {
                 
                 // register a callback for updates
                 element.script("""
-                    function updateVariable\(element.builderId)(value) {
+                    function updateVariable\(element.builderId)(value, _meta) {
                         \(element.builderId).innerText = value;
                     }
                     addCallback\(binding.builderId)(updateVariable\(element.builderId));
@@ -347,7 +342,7 @@ public extension CoreWebEndpoint {
                 // Register callbacks for each binding to update and re-render
                 for (i, b) in bindings.enumerated() {
                     script += """
-                        addCallback\(b.builderId)(function(value){ values[\(i)] = value; render(); });
+                        addCallback\(b.builderId)(function(value, _meta){ values[\(i)] = value; render(); });
                     """
                 }
 

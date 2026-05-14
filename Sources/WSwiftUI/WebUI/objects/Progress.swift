@@ -97,8 +97,12 @@ public extension CoreWebEndpoint {
         bar.elementName = "div"
         bar.addAttribute(.class("progress-bar"))
         bar.addAttribute(.pair("role", "progressbar"))
-        bar.width(value)
-        bar.range(min: 0, max: max)
+        let maxValue = max > 0 ? max : 1
+        let clampedValue = Swift.min(Swift.max(value, 0), maxValue)
+        let initialPct = Int((Double(clampedValue) / Double(maxValue)) * 100)
+        bar.addAttribute(.style("width: \(initialPct)%"))
+        bar.addAttribute(.pair("aria-valuenow", "\(clampedValue)"))
+        bar.range(min: 0, max: maxValue)
         if let v = variant { bar.variant(v) }
         if striped { bar.striped() }
         if animated { bar.animated() }
@@ -125,27 +129,32 @@ public extension CoreWebEndpoint {
         let barId = "progressBar_\(bar.builderId)"
         bar.id(barId)
         // initial width from variable
+        let maxValue = max > 0 ? max : 1
         let initial = variable.asInt()
-        bar.width(initial)
-        bar.range(min: 0, max: max)
+        let clampedInitial = Swift.min(Swift.max(initial, 0), maxValue)
+        let initialPct = Int((Double(clampedInitial) / Double(maxValue)) * 100)
+        bar.addAttribute(.style("width: \(initialPct)%"))
+        bar.addAttribute(.pair("aria-valuenow", "\(clampedInitial)"))
+        bar.range(min: 0, max: maxValue)
         if let v = variant { bar.variant(v) }
         if striped { bar.striped() }
         if animated { bar.animated() }
-        // script to update width on variable change
+        // Update immediately on each bound-variable callback (no polling loop).
         bar.addAttribute(.script("""
-var _lastVal_\(bar.builderId) = \(initial);
-setInterval(function() {
-  var val = \(variable.builderId);
-  if (val !== _lastVal_\(bar.builderId)) {
-    var pct = Math.min(Math.max(val, 0), \(max)) / \(max) * 100;
-    var el = document.getElementById('\(barId)');
-    if (el) {
-      el.style.width = pct + '%';
-      el.setAttribute('aria-valuenow', val);
-    }
-    _lastVal_\(bar.builderId) = val;
+function updateVariable\(bar.builderId)(value, _meta) {
+  var numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    numeric = 0;
   }
-}, 500);
+  var clamped = Math.min(Math.max(numeric, 0), \(maxValue));
+  var pct = (clamped / \(maxValue)) * 100;
+  var el = document.getElementById('\(barId)');
+  if (el) {
+    el.style.width = pct + '%';
+    el.setAttribute('aria-valuenow', String(clamped));
+  }
+}
+addCallback\(variable.builderId)(updateVariable\(bar.builderId));
 """))
         return bar
     }
@@ -168,27 +177,31 @@ setInterval(function() {
         let barId = "progressBar_\(bar.builderId)"
         bar.id(barId)
         // initial width from variable
+        let maxValue = max > 0 ? max : 1
         let initial = variable.asDouble()
-        let initPct = Int((initial / max) * 100)
-        bar.width(initPct)
-        bar.range(min: 0, max: Int(max))
+        let clampedInitial = Swift.min(Swift.max(initial, 0), maxValue)
+        let initPct = Int((clampedInitial / maxValue) * 100)
+        bar.addAttribute(.style("width: \(initPct)%"))
+        bar.addAttribute(.pair("aria-valuenow", "\(clampedInitial)"))
+        bar.range(min: 0, max: Int(maxValue))
         if let v = variant { bar.variant(v) }
         if striped { bar.striped() }
         if animated { bar.animated() }
         bar.addAttribute(.script("""
-var _lastVal_\(bar.builderId) = \(initial);
-setInterval(function() {
-  var val = \(variable.builderId);
-  if (val !== _lastVal_\(bar.builderId)) {
-    var pct = Math.min(Math.max(val, 0), \(max)) / \(max) * 100;
-    var el = document.getElementById('\(barId)');
-    if (el) {
-      el.style.width = pct + '%';
-      el.setAttribute('aria-valuenow', val);
-    }
-    _lastVal_\(bar.builderId) = val;
+function updateVariable\(bar.builderId)(value, _meta) {
+  var numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    numeric = 0;
   }
-}, 500);
+  var clamped = Math.min(Math.max(numeric, 0), \(maxValue));
+  var pct = (clamped / \(maxValue)) * 100;
+  var el = document.getElementById('\(barId)');
+  if (el) {
+    el.style.width = pct + '%';
+    el.setAttribute('aria-valuenow', String(clamped));
+  }
+}
+addCallback\(variable.builderId)(updateVariable\(bar.builderId));
 """))
         return bar
     }

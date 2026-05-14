@@ -29,6 +29,13 @@ internal enum WebVariableType {
     case object
 }
 
+public enum WebVariableLifecycleEvent: String {
+    case willSet
+    case didSet
+    case changed
+    case unchanged
+}
+
 public class WebVariableElement : WebElement {
     
     internal var variableType: WebVariableType = .bool
@@ -41,6 +48,15 @@ public class WebVariableElement : WebElement {
         initial = value
     }
     
+    private func escapedForJSSingleQuotedString(_ value: String) -> String {
+        return value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\t", with: "\\t")
+    }
+    
     @discardableResult
     internal func asJSValue() -> String {
         switch variableType {
@@ -51,15 +67,18 @@ public class WebVariableElement : WebElement {
         case .double:
             return String(asDouble())
         case .string:
-            return "'\(asString())'"
+            return "'\(escapedForJSSingleQuotedString(asString()))'"
         case .array:
-            let array = asArray().map { "'\($0)'" }.joined(separator: ",")
+            let array = asArray().map { "'\(escapedForJSSingleQuotedString($0))'" }.joined(separator: ",")
             return "[\(array)]"
         case .object:
             // Assuming object is a dictionary of String: Any
             if let dict = initial as? [String: Any] {
-                let entries = dict.map { "'\($0.key)': '\($0.value)'" }.joined(separator: ",")
-                return "{\(entries)}"
+                if JSONSerialization.isValidJSONObject(dict),
+                   let data = try? JSONSerialization.data(withJSONObject: dict, options: []),
+                   let json = String(data: data, encoding: .utf8) {
+                    return json
+                }
             }
             return "{}"
         }
@@ -97,15 +116,39 @@ public class WebVariableElement : WebElement {
     }
     
     @discardableResult
-    public func onValueChange(_ actions: [WebAction]) -> Self {
-        // register callbacks for updates to the bound variable
+    public func onValueEvent(_ event: WebVariableLifecycleEvent, _ actions: [WebAction]) -> Self {
         attributes.append(.script("""
-                            function updateVariable\(builderId)(value) {
+                            addWebVariableEventListener\(builderId)('\(event.rawValue)', function(_eventPayload) {
                                 \(compileActions(actions))
-                            }
-                            addCallback\(builderId)(updateVariable\(builderId));
+                            });
                         """))
         return self
+    }
+    
+    @discardableResult
+    public func onValueWillSet(_ actions: [WebAction]) -> Self {
+        onValueEvent(.willSet, actions)
+    }
+    
+    @discardableResult
+    public func onValueDidSet(_ actions: [WebAction]) -> Self {
+        onValueEvent(.didSet, actions)
+    }
+    
+    @discardableResult
+    public func onValueChanged(_ actions: [WebAction]) -> Self {
+        onValueEvent(.changed, actions)
+    }
+    
+    @discardableResult
+    public func onValueUnchanged(_ actions: [WebAction]) -> Self {
+        onValueEvent(.unchanged, actions)
+    }
+    
+    // Backwards-compatible alias retained for existing callsites.
+    @discardableResult
+    public func onValueChange(_ actions: [WebAction]) -> Self {
+        onValueDidSet(actions)
     }
     
     @discardableResult
@@ -113,36 +156,168 @@ public class WebVariableElement : WebElement {
         
         addAttribute(.dontRegisterObject)
         
+        let typeLabel: String
+        switch variableType {
+            case .bool: typeLabel = "bool"
+            case .int: typeLabel = "int"
+            case .double: typeLabel = "double"
+            case .string: typeLabel = "string"
+            case .array: typeLabel = "array"
+            case .object: typeLabel = "object"
+        }
+        
         // create the functions to get/set this variable
         addAttribute(.script("""
         
         // definition of variable for global use
         var \(builderId) = \(asJSValue());
+        var webVariableType\(builderId) = '\(typeLabel)';
         
         // array of callback functions that take a single value parameter
         var callbacks\(builderId) = [];
+        var variableEventCallbacks\(builderId) = {
+            willSet: [],
+            didSet: [],
+            changed: [],
+            unchanged: []
+        };
         
         function addCallback\(builderId)(callback) {
             // add a callback function to the array
             callbacks\(builderId).push(callback);
         }
         
+        function addWebVariableEventListener\(builderId)(eventName, callback) {
+            if (!variableEventCallbacks\(builderId)[eventName]) {
+                variableEventCallbacks\(builderId)[eventName] = [];
+            }
+            variableEventCallbacks\(builderId)[eventName].push(callback);
+        }
+        
+        function emitWebVariableEvent\(builderId)(eventName, payload) {
+            var handlers = variableEventCallbacks\(builderId)[eventName] || [];
+            for (var i = 0; i < handlers.length; i++) {
+                handlers[i](payload);
+            }
+        }
+        
+        function normalizeWebVariable\(builderId)(value, fallback) {
+            if (webVariableType\(builderId) === 'bool') {
+                if (typeof value === 'boolean') return value;
+                if (typeof value === 'number') return value !== 0;
+                if (typeof value === 'string') {
+                    var lowered = value.trim().toLowerCase();
+                    if (lowered === 'true' || lowered === '1' || lowered === 'on' || lowered === 'yes') return true;
+                    if (lowered === 'false' || lowered === '0' || lowered === 'off' || lowered === 'no' || lowered === '') return false;
+                }
+                return !!value;
+            }
+        
+            if (webVariableType\(builderId) === 'int') {
+                var parsedInt = parseInt(value, 10);
+                if (isNaN(parsedInt)) {
+                    return (typeof fallback === 'number') ? Math.trunc(fallback) : 0;
+                }
+                return parsedInt;
+            }
+        
+            if (webVariableType\(builderId) === 'double') {
+                var parsedDouble = parseFloat(value);
+                if (isNaN(parsedDouble)) {
+                    return (typeof fallback === 'number') ? fallback : 0;
+                }
+                return parsedDouble;
+            }
+        
+            if (webVariableType\(builderId) === 'array') {
+                if (Array.isArray(value)) return value;
+                if (typeof value === 'string') {
+                    var trimmed = value.trim();
+                    if (trimmed === '') return [];
+                    try {
+                        var parsedArray = JSON.parse(value);
+                        if (Array.isArray(parsedArray)) return parsedArray;
+                    } catch (_) {}
+                    return value.split(',').map(function(item){ return item.trim(); });
+                }
+                if (value === null || typeof value === 'undefined') return [];
+                return [String(value)];
+            }
+        
+            if (webVariableType\(builderId) === 'object') {
+                if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+                if (typeof value === 'string') {
+                    try {
+                        var parsedObject = JSON.parse(value);
+                        if (parsedObject && typeof parsedObject === 'object' && !Array.isArray(parsedObject)) {
+                            return parsedObject;
+                        }
+                    } catch (_) {}
+                    return {};
+                }
+                return {};
+            }
+        
+            // string
+            if (value === null || typeof value === 'undefined') return '';
+            return String(value);
+        }
+        
+        function serializeWebVariable\(builderId)(value) {
+            if (Array.isArray(value) || (value !== null && typeof value === 'object')) {
+                try { return JSON.stringify(value); } catch (_) { return ''; }
+            }
+            if (value === null || typeof value === 'undefined') return '';
+            return String(value);
+        }
+        
+        function valuesEqualWebVariable\(builderId)(left, right) {
+            if (left === right) return true;
+            var leftIsObj = left !== null && typeof left === 'object';
+            var rightIsObj = right !== null && typeof right === 'object';
+            if (leftIsObj || rightIsObj) {
+                try { return JSON.stringify(left) === JSON.stringify(right); } catch (_) { return false; }
+            }
+            return false;
+        }
+        
         // create monitor and variable functions for updates and monitoring
         function updateHiddenInput\(builderId)(value) {
-            document.getElementById('hiddenInput_\(builderId)').value = value;
-            \(builderId) = value;
+            var hiddenInput = document.getElementById('hiddenInput_\(builderId)');
+            if (hiddenInput) {
+                hiddenInput.value = serializeWebVariable\(builderId)(value);
+            }
+        }
+        
+        function notifyWebVariable\(builderId)(context) {
+            updateWebVariable\(builderId)(\(builderId), context || { source: 'notify' });
         }
         
         // var updates the hidden input as well as var. Then notifies a change to the bound objects
-        function updateWebVariable\(builderId)(value) {
-            // check to see if the value has actually changed before kicking off callbacks
-            \(builderId) = value;
-            updateHiddenInput\(builderId)(value);
+        function updateWebVariable\(builderId)(value, context) {
+            var previousValue = \(builderId);
+            var nextValue = normalizeWebVariable\(builderId)(value, previousValue);
+            var changed = !valuesEqualWebVariable\(builderId)(previousValue, nextValue);
+            var metadata = context || {};
+            var payload = {
+                value: nextValue,
+                previousValue: previousValue,
+                changed: changed,
+                source: (typeof metadata.source === 'string') ? metadata.source : 'update',
+                origin: metadata.origin || null
+            };
         
+            emitWebVariableEvent\(builderId)('willSet', payload);
+            \(builderId) = nextValue;
+            updateHiddenInput\(builderId)(nextValue);
+         
             // loop through the callbacks and call them with the new value
             for (var i = 0; i < callbacks\(builderId).length; i++) {
-                callbacks\(builderId)[i](value);
+                callbacks\(builderId)[i](nextValue, payload);
             }
+        
+            emitWebVariableEvent\(builderId)('didSet', payload);
+            emitWebVariableEvent\(builderId)(changed ? 'changed' : 'unchanged', payload);
         }
         """))
         
@@ -279,7 +454,7 @@ public class WebVariableElement : WebElement {
                         // Use generated updater to keep hidden input + callbacks in sync
                         var fn = window['updateWebVariable' + targetId];
                         if (typeof fn === 'function') {
-                            fn(val);
+                            fn(val, { source: 'liveUpdate.read', origin: '\(builderId)' });
                         } else {
                             // Fallback (should rarely be needed)
                             try { window[targetId] = val; } catch(_){}
@@ -311,7 +486,7 @@ public class WebVariableElement : WebElement {
                     (function(v){
                         var addCb = window['addCallback' + v.id];
                         if (typeof addCb === 'function') {
-                            addCb(function(_newVal){
+                            addCb(function(_newVal, meta){
                                 if (!\(allowWrite ? "true" : "false")) return;
                                 if (isApplying_\(builderId)) return; // ignore our own updates from server
                                 if (skippedFirst_\(builderId)[v.id] === false) {
@@ -319,6 +494,7 @@ public class WebVariableElement : WebElement {
                                     skippedFirst_\(builderId)[v.id] = true;
                                     return;
                                 }
+                                if (meta && meta.changed === false) return;
                                 // Write current values for all involved vars; no read
                                 send_\(builderId)(false, true);
                             });
@@ -463,7 +639,12 @@ public extension CoreWebEndpoint {
             element.addAttribute(.type("hidden"))
             element.setInitialValue(values)
             element.addAttribute(.initialValue(values))
-            element.addAttribute(.value("[\(values.map { "'\($0)'" }.joined(separator: ","))]"))
+            if let json = try? JSONSerialization.data(withJSONObject: values, options: []),
+               let encoded = String(data: json, encoding: .utf8) {
+                element.addAttribute(.value(encoded))
+            } else {
+                element.addAttribute(.value("[]"))
+            }
             
             // observer to keep hidden field in sync
             element.createWebVariableFunctions()
