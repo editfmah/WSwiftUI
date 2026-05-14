@@ -102,6 +102,7 @@ public enum WebCoreHeadElement {
 
 public enum WebCoreElementAttribute {
     case `class`(String)
+    case deviceClass(mobile: String?, desktop: String?)
     case id(String)
     case name(String)
     case value(String)
@@ -161,6 +162,25 @@ public class WebElement {
     @discardableResult
     public func `class`(_ className: String)  -> Self {
         addAttribute(.class(className))
+        return self
+    }
+    
+    /// Applies one class for mobile clients and another for desktop clients.
+    @discardableResult
+    public func deviceClass(mobile: String? = nil, desktop: String? = nil) -> Self {
+        addAttribute(.deviceClass(mobile: mobile, desktop: desktop))
+        return self
+    }
+    
+    @discardableResult
+    public func mobileClass(_ className: String) -> Self {
+        addAttribute(.deviceClass(mobile: className, desktop: nil))
+        return self
+    }
+    
+    @discardableResult
+    public func desktopClass(_ className: String) -> Self {
+        addAttribute(.deviceClass(mobile: nil, desktop: className))
         return self
     }
     
@@ -370,6 +390,54 @@ public class WebElement {
         return self
     }
     
+}
+
+public enum WebClientDeviceKind: String {
+    case mobile
+    case desktop
+}
+
+public extension HttpRequest {
+    var clientDeviceKind: WebClientDeviceKind {
+        let headers = head.headerMap
+        
+        if let mobileHint = headers["sec-ch-ua-mobile"]?.trimmingCharacters(in: .whitespacesAndNewlines) {
+            if mobileHint.contains("?1") { return .mobile }
+            if mobileHint.contains("?0") { return .desktop }
+        }
+        
+        let ua = (headers["user-agent"] ?? "").lowercased()
+        if ua.isEmpty {
+            return .desktop
+        }
+        
+        let mobileHints = [
+            "android",
+            "iphone",
+            "ipad",
+            "ipod",
+            "mobile",
+            "tablet",
+            "windows phone",
+            "iemobile",
+            "blackberry",
+            "opera mini",
+            "silk",
+            "kindle"
+        ]
+        
+        return mobileHints.contains(where: { ua.contains($0) }) ? .mobile : .desktop
+    }
+    
+    var isMobileClient: Bool {
+        clientDeviceKind == .mobile
+    }
+}
+
+public extension CoreWebEndpoint {
+    var clientDeviceKind: WebClientDeviceKind {
+        request.clientDeviceKind
+    }
 }
 
 public protocol WebEndpoint {

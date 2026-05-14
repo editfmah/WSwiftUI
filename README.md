@@ -232,6 +232,7 @@ Useful fluent layout modifiers:
 - `frame(width:height:minWidth:maxWidth:minHeight:maxHeight:alignment:)`
 - `width(...)`, `height(...)`, `minWidth(...)`, `maxWidth(...)`
 - `background(...)`, `foreground(...)`, `opacity(...)`
+- `deviceClass(mobile:desktop:)`, `mobileClass(...)`, `desktopClass(...)` for automatic mobile/desktop class selection
 
 ---
 

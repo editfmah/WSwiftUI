@@ -17,7 +17,7 @@ public extension CoreWebEndpoint {
   /// Creates a full-width jumbotron banner.
   ///
   /// - Parameters:
-  ///   - fluid: if true, uses `.container-fluid` inside; otherwise `.container`
+  ///   - fluid: if true, uses `.container-fluid`; otherwise auto-picks mobile `.container-fluid` and desktop `.container`
   ///   - bgImageURL: optional URL for a background image
   ///   - content: closure in which to call `JumbotronTitle`, `JumbotronSubtitle`, or any other elements
   @discardableResult
@@ -43,7 +43,11 @@ public extension CoreWebEndpoint {
     let container = WebElement()
     populateCreatedObject(container)
     container.elementName = "div"
-    container.addAttribute(.class(fluid ? "container-fluid" : "container"))
+    if fluid {
+      container.addAttribute(.class("container-fluid"))
+    } else {
+      container.deviceClass(mobile: "container-fluid", desktop: "container")
+    }
     stack.append(container)
 
     // 3) user content (titles, buttons, etc.)

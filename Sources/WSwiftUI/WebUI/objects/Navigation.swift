@@ -45,9 +45,11 @@ public extension CoreWebEndpoint {
     let container = WebElement()
     populateCreatedObject(container)
     container.elementName = "div"
-    container.addAttribute(.class(
-      useFluidContainer ? "container-fluid" : "container"
-    ))
+    if useFluidContainer {
+      container.addAttribute(.class("container-fluid"))
+    } else {
+      container.deviceClass(mobile: "container-fluid", desktop: "container")
+    }
     // push container
     stack.append(container)
 

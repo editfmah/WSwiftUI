@@ -68,7 +68,8 @@ internal extension CoreWebEndpoint {
         pageContent += "\(tab)</head>\n"
         
         // render body
-        pageContent += "\(tab)<body>\n"
+        let deviceKind = request.clientDeviceKind
+        pageContent += "\(tab)<body class=\"wsui-device-\(deviceKind.rawValue)\" data-wsui-device=\"\(deviceKind.rawValue)\">\n"
         if let root = webRootElement {
             for webElement in root.subElements {
                 pageContent += render(webElement, indent: innerIndent)
@@ -111,6 +112,11 @@ internal extension CoreWebEndpoint {
             switch attr {
                 case .class(let v):
                     classValues.append(v)
+                case .deviceClass(let mobileClass, let desktopClass):
+                    let selectedClass = request.isMobileClient ? mobileClass : desktopClass
+                    if let selectedClass, selectedClass.isEmpty == false {
+                        classValues.append(selectedClass)
+                    }
                     
                 case .style(let v):
                     styleValues.append(v)

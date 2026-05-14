@@ -43,7 +43,7 @@ public extension CoreWebEndpoint {
                 }
             }
             if mode == .fit {
-                element.class("col-md-auto")
+                element.deviceClass(mobile: "col-12", desktop: "col-md-auto")
             }
             element.layout = .vertical
         }
