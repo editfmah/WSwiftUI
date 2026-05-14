@@ -32,6 +32,8 @@ public class WSwiftServer {
     // endpoint registration
     private var mutex: Mutex = Mutex()
     private var endpoints: [WebEndpoint] = []
+    private let listenPort: Int
+    public var publicBaseURL: String?
     public func register(_ newEndpoint: WebEndpoint) {
         
         let instance = newEndpoint.create()
@@ -228,6 +230,10 @@ public class WSwiftServer {
                 } else if response is WebElement {
                     // build the html response from the response object
                     if endpoint is WebContent {
+                        if let seoEndpoint = endpoint as? SEOIndexable {
+                            let endpointPath = (endpoint as? WebEndpoint)?.path ?? request.head.path
+                            endpoint.applyPageSEO(seoEndpoint.seo(), baseURL: self.resolvedBaseURL(for: request), path: endpointPath)
+                        }
                         let pageContent = endpoint.renderWebPage()
                         return HttpResponse().status(.ok).content(.html).body(pageContent).setCookie(name: "auth", value: endpoint.newAuthenticationIdentifier ?? endpoint.authenticationIdentifier ?? "", path: "/", domain: nil, maxAge: 3600, expires: nil, httpOnly: true, secure: false, sameSite: "Lax")
                     }
@@ -259,8 +265,7 @@ public class WSwiftServer {
             path = "/ws"
         }
 
-        let callback: ((HttpRequest) -> HttpResponse) = { [weak self] request in
-            guard let self = self else { return HttpResponse().status(.serviceUnavailable) }
+        let callback: ((HttpRequest) -> HttpResponse) = { request in
             // Only proceed for websocket upgrade requests
             switch request.kind {
             case .websocket(let upgrade):
@@ -291,6 +296,235 @@ public class WSwiftServer {
         
     }
     
+    private func registerSystemRoutes() {
+        svr.addRoute("/sitemap.xml") { [weak self] request in
+            guard let self = self else {
+                return HttpResponse().status(.serviceUnavailable)
+            }
+            
+            let entries = self.collectSitemapEntries(for: request)
+            let xml = self.renderSitemapXML(entries)
+            return HttpResponse()
+                .status(.ok)
+                .header("Content-Type", "application/xml; charset=utf-8")
+                .body(xml)
+        }
+        
+        svr.addRoute("/trawl-urls.txt") { [weak self] request in
+            guard let self = self else {
+                return HttpResponse().status(.serviceUnavailable)
+            }
+            
+            let entries = self.collectSitemapEntries(for: request)
+            let body = self.renderTrawlURLList(entries)
+            return HttpResponse().status(.ok).content(.text).body(body)
+        }
+        
+        svr.addRoute("/robots.txt") { [weak self] request in
+            guard let self = self else {
+                return HttpResponse().status(.serviceUnavailable)
+            }
+            
+            return HttpResponse().status(.ok).content(.text).body(self.renderRobotsTXT(for: request))
+        }
+    }
+    
+    private func collectSitemapEntries(for request: HttpRequest) -> [SitemapEntry] {
+        let baseURL = resolvedBaseURL(for: request)
+        var deduplicated: [SitemapEntry] = []
+        var seen: Set<String> = []
+        
+        mutex.execute {
+            for endpoint in endpoints {
+                guard isPublicContentEndpoint(endpoint) else {
+                    continue
+                }
+                
+                if let sitemapEndpoint = endpoint as? SitemapIndexable {
+                    guard sitemapEndpoint.includeInSitemap else {
+                        continue
+                    }
+                    
+                    for entry in sitemapEndpoint.sitemapEntries(baseURL: baseURL) {
+                        let url = normalizeSitemapURL(entry.url, baseURL: baseURL)
+                        guard seen.insert(url).inserted else {
+                            continue
+                        }
+                        
+                        deduplicated.append(SitemapEntry(
+                            url: url,
+                            lastModified: entry.lastModified,
+                            changeFrequency: entry.changeFrequency,
+                            priority: entry.priority,
+                            includeInTrawl: entry.includeInTrawl
+                        ))
+                    }
+                } else {
+                    let defaultURL = normalizeSitemapURL(endpoint.path, baseURL: baseURL)
+                    guard seen.insert(defaultURL).inserted else {
+                        continue
+                    }
+                    deduplicated.append(SitemapEntry(url: defaultURL))
+                }
+            }
+        }
+        
+        return deduplicated.sorted(by: { $0.url < $1.url })
+    }
+    
+    private func isPublicContentEndpoint(_ endpoint: WebEndpoint) -> Bool {
+        guard endpoint is WebContent else {
+            return false
+        }
+        
+        guard endpoint.path.contains("*") == false else {
+            return false
+        }
+        
+        guard endpoint.authenticationRequired.contains(.unauthenticated) else {
+            return false
+        }
+        
+        if let contentEndpoint = endpoint as? WebContent,
+           let permissions = contentEndpoint.acceptedRoles(for: .Content),
+           permissions.isEmpty == false {
+            return false
+        }
+        
+        return true
+    }
+    
+    private func resolvedBaseURL(for request: HttpRequest) -> String {
+        if let configured = publicBaseURL {
+            return configured
+        }
+        
+        if let origin = request.head.headerMap["origin"],
+           let normalizedOrigin = Self.normalizedBaseURL(origin) {
+            return normalizedOrigin
+        }
+        
+        let forwardedProto = firstHeaderValue(request.head.headerMap["x-forwarded-proto"]) ?? "http"
+        
+        if let forwardedHost = firstHeaderValue(request.head.headerMap["x-forwarded-host"]),
+           forwardedHost.isEmpty == false,
+           let normalized = Self.normalizedBaseURL("\(forwardedProto)://\(forwardedHost)") {
+            return normalized
+        }
+        
+        if let host = firstHeaderValue(request.head.headerMap["host"]),
+           host.isEmpty == false,
+           let normalized = Self.normalizedBaseURL("\(forwardedProto)://\(host)") {
+            return normalized
+        }
+        
+        return "http://localhost:\(listenPort)"
+    }
+    
+    private func renderSitemapXML(_ entries: [SitemapEntry]) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        
+        var lines: [String] = []
+        lines.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+        lines.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">")
+        
+        for entry in entries {
+            lines.append("  <url>")
+            lines.append("    <loc>\(xmlEscape(entry.url))</loc>")
+            if let lastModified = entry.lastModified {
+                lines.append("    <lastmod>\(formatter.string(from: lastModified))</lastmod>")
+            }
+            if let frequency = entry.changeFrequency {
+                lines.append("    <changefreq>\(frequency.rawValue)</changefreq>")
+            }
+            if let priority = entry.priority {
+                let clamped = min(1.0, max(0.0, priority))
+                lines.append("    <priority>\(String(format: "%.1f", clamped))</priority>")
+            }
+            lines.append("  </url>")
+        }
+        
+        lines.append("</urlset>")
+        return lines.joined(separator: "\n") + "\n"
+    }
+    
+    private func renderTrawlURLList(_ entries: [SitemapEntry]) -> String {
+        let urls = entries
+            .filter { $0.includeInTrawl }
+            .map { $0.url }
+        
+        if urls.isEmpty {
+            return ""
+        }
+        return urls.joined(separator: "\n") + "\n"
+    }
+    
+    private func renderRobotsTXT(for request: HttpRequest) -> String {
+        let baseURL = resolvedBaseURL(for: request)
+        return """
+        User-agent: *
+        Allow: /
+        Sitemap: \(baseURL)/sitemap.xml
+        
+        """
+    }
+    
+    private func normalizeSitemapURL(_ url: String, baseURL: String) -> String {
+        let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasPrefix("http://") || trimmed.hasPrefix("https://") {
+            return trimmed
+        }
+        
+        if trimmed.hasPrefix("/") {
+            return "\(baseURL)\(trimmed)"
+        }
+        
+        return "\(baseURL)/\(trimmed)"
+    }
+    
+    private func xmlEscape(_ value: String) -> String {
+        return value
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&apos;")
+    }
+    
+    private func firstHeaderValue(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+        
+        if let first = value.split(separator: ",", maxSplits: 1, omittingEmptySubsequences: true).first {
+            return first.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        return value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+    
+    private static func normalizedBaseURL(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+        
+        var trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty == false else {
+            return nil
+        }
+        
+        if trimmed.hasPrefix("http://") == false && trimmed.hasPrefix("https://") == false {
+            trimmed = "https://\(trimmed)"
+        }
+        
+        while trimmed.hasSuffix("/") {
+            trimmed.removeLast()
+        }
+        
+        return trimmed
+    }
+    
     private var getUserRoles: ((String, WebEndpoint) -> [String]?)? = nil
     
     // authentication
@@ -309,7 +543,9 @@ public class WSwiftServer {
     private var svr: HTTPServer!
     
     // action blocks
-    public init(port: Int, bindAddressv4: String? = nil) {
+    public init(port: Int, bindAddressv4: String? = nil, publicBaseURL: String? = nil) {
+        self.listenPort = port
+        self.publicBaseURL = Self.normalizedBaseURL(publicBaseURL)
         
         var config = HTTPServer.Config()
         config.port = UInt16(port)
@@ -327,6 +563,7 @@ public class WSwiftServer {
             return HttpResponse().status(.notFound).body("No endpoints configured.")
         })
         
+        registerSystemRoutes()
         try? svr.start()
 
     }

@@ -18,15 +18,16 @@ WSwiftUI combines:
 3. [Quick start](#quick-start)
 4. [Core concepts](#core-concepts)
 5. [Routing](#routing)
-6. [Building UI](#building-ui)
-7. [State and data binding](#state-and-data-binding)
-8. [Forms, persist, and validation](#forms-persist-and-validation)
-9. [Actions and events](#actions-and-events)
-10. [API endpoints and uploads](#api-endpoints-and-uploads)
-11. [WebSockets](#websockets)
-12. [Authentication and authorization](#authentication-and-authorization)
-13. [Run the demo app](#run-the-demo-app)
-14. [Project layout](#project-layout)
+6. [Sitemaps, crawling, and SEO metadata](#sitemaps-crawling-and-seo-metadata)
+7. [Building UI](#building-ui)
+8. [State and data binding](#state-and-data-binding)
+9. [Forms, persist, and validation](#forms-persist-and-validation)
+10. [Actions and events](#actions-and-events)
+11. [API endpoints and uploads](#api-endpoints-and-uploads)
+12. [WebSockets](#websockets)
+13. [Authentication and authorization](#authentication-and-authorization)
+14. [Run the demo app](#run-the-demo-app)
+15. [Project layout](#project-layout)
 
 ---
 
@@ -148,6 +149,63 @@ Matching behavior:
 1. Exact routes are matched first.
 2. Wildcard routes are matched next.
 3. More specific wildcard patterns win over broader ones.
+
+---
+
+## Sitemaps, crawling, and SEO metadata
+
+`WSwiftServer` now serves framework-managed crawl endpoints:
+
+- `/sitemap.xml`
+- `/trawl-urls.txt`
+- `/robots.txt`
+
+These are generated from registered endpoints and kept current as routes are registered.
+
+By default, public content endpoints (`WebContent` + `.unauthenticated`) are included in sitemap/trawl output.
+You can customize with `SitemapIndexable`:
+
+```swift
+final class BlogPage: CoreWebEndpoint, WebEndpoint, WebContent, SitemapIndexable {
+    var controller: String? = "blog"
+    var method: String? = nil
+    var authenticationRequired: [WebAuthenticationStatus] = [.unauthenticated]
+
+    func sitemapEntries(baseURL: String) -> [SitemapEntry] {
+        [
+            SitemapEntry(url: "\(baseURL)/blog", changeFrequency: .daily, priority: 0.8),
+            SitemapEntry(url: "\(baseURL)/blog/archive", changeFrequency: .weekly, includeInTrawl: false)
+        ]
+    }
+}
+```
+
+For page metadata and social preview tags, adopt `SEOIndexable`.
+The framework injects `<title>`, canonical/meta tags, Open Graph, Twitter card tags, and JSON-LD into `<head>` during render:
+
+```swift
+final class ArticlePage: CoreWebEndpoint, WebEndpoint, WebContent, SEOIndexable {
+    func seo() -> PageSEO? {
+        return PageSEO(
+            title: "My Article",
+            description: "Article summary for search and social previews.",
+            canonicalPath: "/article",
+            robots: "index,follow",
+            openGraph: OpenGraphMetadata(
+                type: "article",
+                imageURL: "/assets/article-preview.png",
+                siteName: "WSwiftUI"
+            ),
+            twitter: TwitterCardMetadata(),
+            jsonLD: [
+                #"{"@context":"https://schema.org","@type":"Article","headline":"My Article"}"#
+            ]
+        )
+    }
+}
+```
+
+If `publicBaseURL` is set on `WSwiftServer`, it is used for canonical/sitemap URL generation; otherwise request headers are used.
 
 ---
 
