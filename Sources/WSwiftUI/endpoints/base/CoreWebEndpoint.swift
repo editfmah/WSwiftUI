@@ -486,6 +486,13 @@ internal extension CoreWebEndpoint {
         
         if let previousValue = ephemeralData["previous_\(name)"] {
             if let v = previousValue {
+                if value.variableType == .string {
+                    if let stringValue = v as? String {
+                        value.setInitialValue(stringValue)
+                    } else {
+                        value.setInitialValue(String(describing: v))
+                    }
+                }
                 value.addAttribute(.initialValue(v))
             }
         }
@@ -653,4 +660,3 @@ open class CoreWebsocketEndpoint: CoreWebEndpoint, @unchecked Sendable {
         }
     }
 }
-

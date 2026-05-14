@@ -84,9 +84,15 @@ public class WebVariableElement : WebElement {
     
     @discardableResult
     override public func name(_ name: String) -> Self {
-        attributes.removeAll(where: { if case .name(_) = $0 { return true } else { return false } })
-        addAttribute(.name(name))
         internalName = name
+        
+        // String bindings are usually represented by visible text controls that
+        // should own the public form field name. Keep the hidden variable input
+        // on its generated builderId name to avoid duplicate name fields.
+        if variableType != .string {
+            attributes.removeAll(where: { if case .name(_) = $0 { return true } else { return false } })
+            addAttribute(.name(name))
+        }
         return self
     }
     
@@ -367,6 +373,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
+            element.setInitialValue(value)
             element.addAttribute(.value(value ? "true" : "false"))
             element.addAttribute(.initialValue(value))
             
@@ -389,6 +396,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
+            element.setInitialValue(value)
             element.addAttribute(.initialValue(value))
             element.addAttribute(.value(String(value)))
             
@@ -409,6 +417,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
+            element.setInitialValue(value)
             element.addAttribute(.initialValue(value))
             element.addAttribute(.value(String(value)))
             
@@ -430,6 +439,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.name(element.builderId))
             element.addAttribute(.type("hidden"))
+            element.setInitialValue(value)
             element.addAttribute(.initialValue(value))
             element.addAttribute(.value(value))
             
@@ -451,6 +461,7 @@ public extension CoreWebEndpoint {
             element.id("hiddenInput_\(element.builderId)")
             element.addAttribute(.pair("name", element.builderId))
             element.addAttribute(.type("hidden"))
+            element.setInitialValue(values)
             element.addAttribute(.initialValue(values))
             element.addAttribute(.value("[\(values.map { "'\($0)'" }.joined(separator: ","))]"))
             
