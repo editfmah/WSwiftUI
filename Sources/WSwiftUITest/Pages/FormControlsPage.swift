@@ -101,6 +101,8 @@ FileUploader(action: "/api/controls", onUpload: [.alert("Upload finished")]) {
                         .foreground(.darkgrey)
                 }
             }
+            
+            InteractiveBindingActionsSection(pageKey: "forms")
         }
     }
 

@@ -14,8 +14,8 @@ extension CoreWebEndpoint {
         
         webpage {
             
-            head(.script(src: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"))
-            head(.styleLink(href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"))
+            head(.script(src: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"))
+            head(.styleLink(href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"))
             head(.styleLink(href: "https://unpkg.com/prismjs@1.29.0/themes/prism.css"))
             head(.script(src: "https://unpkg.com/prismjs@1.29.0/prism.js"))
             head(.script(src: "https://unpkg.com/prismjs@v1.29.0/plugins/autoloader/prism-autoloader.min.js"))

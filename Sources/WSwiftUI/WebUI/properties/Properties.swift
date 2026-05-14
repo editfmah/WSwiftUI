@@ -534,6 +534,8 @@ public enum WebMarginType {
 public enum WebTextAlignment: String {
     case left
     case right
+    case start
+    case end
     case center
     case justify
 }
@@ -541,6 +543,10 @@ public enum WebTextAlignment: String {
 public enum WebContentAlignment : String {
     case left
     case right
+    case start
+    case end
+    case leading
+    case trailing
     case middle
     case top
     case bottom
@@ -623,6 +629,22 @@ public enum WebPositionValue {
             return "\(value)"
         }
     }
+    
+    var bootstrapClassSuffix: String? {
+        switch self {
+        case .auto:
+            return "auto"
+        case .pixels:
+            return nil
+        case .percent(let value):
+            switch value {
+            case 0, 50, 100:
+                return "\(value)"
+            default:
+                return nil
+            }
+        }
+    }
 }
 
 public enum WebTranslateDirection: String {
@@ -635,6 +657,30 @@ public enum WebFrameAlignment {
     case leading
     case center
     case trailing
+}
+
+fileprivate func bootstrapSpacingStep(for pixels: Int) -> Int? {
+    switch pixels {
+    case 0: return 0
+    case 4: return 1
+    case 8: return 2
+    case 16: return 3
+    case 24: return 4
+    case 48: return 5
+    default: return nil
+    }
+}
+
+fileprivate func bootstrapSpacingClassPrefix(_ property: String, position: WebAreaPosition) -> String {
+    switch position {
+    case .all: return property
+    case .top: return "\(property)t"
+    case .bottom: return "\(property)b"
+    case .leading: return "\(property)s"
+    case .trailing: return "\(property)e"
+    case .horizontal: return "\(property)x"
+    case .vertical: return "\(property)y"
+    }
 }
 
 
@@ -698,13 +744,33 @@ public extension WebElement {
             switch alignment {
                 case .leading:
                     addAttribute(.class("align-self-start"))
+                    addAttribute(.class("me-auto"))
                 case .center:
                     addAttribute(.class("align-self-center"))
+                    addAttribute(.class("mx-auto"))
                 case .trailing:
                     addAttribute(.class("align-self-end"))
+                    addAttribute(.class("ms-auto"))
             }
         }
         
+        return self
+    }
+    
+    /// SwiftUI-like convenience for stretching on one or both axes.
+    @discardableResult
+    func frame(fillWidth: Bool = false,
+               fillHeight: Bool = false,
+               alignment: WebFrameAlignment? = nil) -> Self {
+        if fillWidth {
+            addAttribute(.class("w-100"))
+        }
+        if fillHeight {
+            addAttribute(.class("h-100"))
+        }
+        if let alignment {
+            _ = frame(alignment: alignment)
+        }
         return self
     }
     
@@ -713,12 +779,22 @@ public extension WebElement {
     
     @discardableResult
     func margin(_ margin: Int) -> Self {
-        addAttribute(.style("margin: \(margin)px"))
+        if let step = bootstrapSpacingStep(for: margin) {
+            addAttribute(.class("m-\(step)"))
+        } else {
+            addAttribute(.style("margin: \(margin)px"))
+        }
         return self
     }
     
     @discardableResult
     func margin(_ position: WebAreaPosition, _ margin: Int) -> Self {
+        if let step = bootstrapSpacingStep(for: margin) {
+            let prefix = bootstrapSpacingClassPrefix("m", position: position)
+            addAttribute(.class("\(prefix)-\(step)"))
+            return self
+        }
+        
         let prop: String
         switch position {
         case .leading:  prop = "margin-left"
@@ -747,19 +823,33 @@ public extension WebElement {
     
     @discardableResult
     func margin(_ type: WebMarginType) -> Self {
-        let value = (type == .auto ? "auto" : "unset")
-        addAttribute(.style("margin: \(value)"))
+        switch type {
+        case .auto:
+            addAttribute(.class("m-auto"))
+        case .none:
+            addAttribute(.class("m-0"))
+        }
         return self
     }
     
     @discardableResult
     func padding(_ padding: Int) -> Self {
-        addAttribute(.style("padding: \(padding)px"))
+        if let step = bootstrapSpacingStep(for: padding) {
+            addAttribute(.class("p-\(step)"))
+        } else {
+            addAttribute(.style("padding: \(padding)px"))
+        }
         return self
     }
     
     @discardableResult
     func padding(_ position: WebAreaPosition, _ padding: Int) -> Self {
+        if let step = bootstrapSpacingStep(for: padding) {
+            let prefix = bootstrapSpacingClassPrefix("p", position: position)
+            addAttribute(.class("\(prefix)-\(step)"))
+            return self
+        }
+        
         let prop: String
         switch position {
         case .leading:  prop = "padding-left"
@@ -868,36 +958,100 @@ public extension WebElement {
     
     @discardableResult
     func align(_ alignments: [WebContentAlignment]) -> Self {
+        var horizontal: String? = nil
+        var vertical: String? = nil
+        
         for a in alignments {
-            let cls: String
             switch a {
-            case .left:   cls = "justify-content-start"
-            case .right:  cls = "justify-content-end"
-            case .center: cls = "justify-content-center"
-            case .top:    cls = "align-content-start"
-            case .bottom: cls = "align-content-end"
-            case .middle: cls = "align-content-center"
+            case .left, .start, .leading:
+                horizontal = "justify-content-start"
+            case .right, .end, .trailing:
+                horizontal = "justify-content-end"
+            case .center:
+                horizontal = "justify-content-center"
+            case .top:
+                vertical = "align-items-start"
+            case .bottom:
+                vertical = "align-items-end"
+            case .middle:
+                vertical = "align-items-center"
             }
-            addAttribute(.class(cls))
+        }
+        if let horizontal {
+            addAttribute(.class(horizontal))
+        }
+        if let vertical {
+            addAttribute(.class(vertical))
         }
         return self
     }
     
     @discardableResult
     func textalign(_ align: WebTextAlignment) -> Self {
-        addAttribute(.style("text-align: \(align.rawValue)"))
+        switch align {
+        case .left, .start:
+            addAttribute(.class("text-start"))
+        case .right, .end:
+            addAttribute(.class("text-end"))
+        case .center:
+            addAttribute(.class("text-center"))
+        case .justify:
+            addAttribute(.style("text-align: justify"))
+        }
         return self
     }
     
     @discardableResult
     func wrap(_ type: WebTextWrapType) -> Self {
-        addAttribute(.style("text-wrap: \(type.rawValue)"))
+        switch type {
+        case .nowrap:
+            addAttribute(.class("text-nowrap"))
+        case .auto, .wrap:
+            addAttribute(.class("text-wrap"))
+        case .balance, .stable:
+            addAttribute(.style("text-wrap: \(type.rawValue)"))
+        }
         return self
     }
     
     @discardableResult
     func clip() -> Self {
-        addAttribute(.style("clip-path: border-box"))
+        addAttribute(.class("overflow-hidden"))
+        return self
+    }
+    
+    /// SwiftUI-like centering helper.
+    @discardableResult
+    func centered(_ axis: WebAreaPosition = .all) -> Self {
+        switch axis {
+        case .horizontal:
+            addAttribute(.class("mx-auto"))
+        case .vertical:
+            addAttribute(.class("my-auto"))
+        case .all:
+            addAttribute(.class("d-flex"))
+            addAttribute(.class("justify-content-center"))
+            addAttribute(.class("align-items-center"))
+        default:
+            break
+        }
+        return self
+    }
+    
+    /// SwiftUI-like stretch/fill helper.
+    @discardableResult
+    func stretch(_ axis: WebAreaPosition = .all) -> Self {
+        switch axis {
+        case .horizontal:
+            addAttribute(.class("w-100"))
+        case .vertical:
+            addAttribute(.class("h-100"))
+        case .all:
+            addAttribute(.class("w-100"))
+            addAttribute(.class("h-100"))
+        default:
+            break
+        }
         return self
     }
     
@@ -931,31 +1085,31 @@ public extension WebElement {
     
     @discardableResult
     func bold() -> Self {
-        addAttribute(.style("font-weight: bold"))
+        addAttribute(.class("fw-bold"))
         return self
     }
     
     @discardableResult
     func lightweight() -> Self {
-        addAttribute(.style("font-weight: lighter"))
+        addAttribute(.class("fw-light"))
         return self
     }
     
     @discardableResult
     func italic() -> Self {
-        addAttribute(.style("font-style: italic"))
+        addAttribute(.class("fst-italic"))
         return self
     }
     
     @discardableResult
     func strikethrough() -> Self {
-        addAttribute(.style("text-decoration: line-through"))
+        addAttribute(.class("text-decoration-line-through"))
         return self
     }
     
     @discardableResult
     func underline(_ value: Bool) -> Self {
-        addAttribute(.style("text-decoration: \(value ? "underline" : "none")"))
+        addAttribute(.class(value ? "text-decoration-underline" : "text-decoration-none"))
         return self
     }
     
@@ -964,19 +1118,44 @@ public extension WebElement {
     
     @discardableResult
     func foreground(_ color: WebColor) -> Self {
+        if color.bsColor != "custom" && color.bsColor != "transparent" {
+            addAttribute(.class("text-\(color.bsColor)"))
+        }
         addAttribute(.style("color: \(color.rgba)"))
         return self
     }
     
     @discardableResult
     func background(_ color: WebColor) -> Self {
+        if color.bsColor != "custom" && color.bsColor != "transparent" {
+            addAttribute(.class("bg-\(color.bsColor)"))
+        }
         addAttribute(.style("background-color: \(color.rgba)"))
         return self
     }
     
     @discardableResult
+    func opacity(_ opacity: WebOpacity) -> Self {
+        addAttribute(.class("opacity-\(opacity.bsValue)"))
+        return self
+    }
+    
+    @discardableResult
     func opacity(_ opacity: Double) -> Self {
-        addAttribute(.style("opacity: \(opacity)"))
+        switch opacity {
+        case 0:
+            addAttribute(.class("opacity-0"))
+        case 0.25:
+            addAttribute(.class("opacity-25"))
+        case 0.5:
+            addAttribute(.class("opacity-50"))
+        case 0.75:
+            addAttribute(.class("opacity-75"))
+        case 1:
+            addAttribute(.class("opacity-100"))
+        default:
+            addAttribute(.style("opacity: \(opacity)"))
+        }
         return self
     }
     
@@ -1037,25 +1216,41 @@ public extension WebElement {
     
     @discardableResult
     func top(_ value: WebPositionValue) -> Self {
-        addAttribute(.class("top-\(value.classSuffix)"))
+        if let suffix = value.bootstrapClassSuffix {
+            addAttribute(.class("top-\(suffix)"))
+        } else {
+            addAttribute(.style("top: \(value.classValue)"))
+        }
         return self
     }
     
     @discardableResult
     func bottom(_ value: WebPositionValue) -> Self {
-        addAttribute(.class("bottom-\(value.classSuffix)"))
+        if let suffix = value.bootstrapClassSuffix {
+            addAttribute(.class("bottom-\(suffix)"))
+        } else {
+            addAttribute(.style("bottom: \(value.classValue)"))
+        }
         return self
     }
     
     @discardableResult
     func start(_ value: WebPositionValue) -> Self {
-        addAttribute(.class("start-\(value.classSuffix)"))
+        if let suffix = value.bootstrapClassSuffix {
+            addAttribute(.class("start-\(suffix)"))
+        } else {
+            addAttribute(.style("left: \(value.classValue)"))
+        }
         return self
     }
     
     @discardableResult
     func end(_ value: WebPositionValue) -> Self {
-        addAttribute(.class("end-\(value.classSuffix)"))
+        if let suffix = value.bootstrapClassSuffix {
+            addAttribute(.class("end-\(suffix)"))
+        } else {
+            addAttribute(.style("right: \(value.classValue)"))
+        }
         return self
     }
     
@@ -1066,5 +1261,3 @@ public extension WebElement {
     }
     
 }
-
-

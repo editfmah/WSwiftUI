@@ -173,6 +173,8 @@ Spinner("Loading").type(.grow).size(.small)
                         .foreground(.blue)
                 }.padding(.top, 12)
             }
+            
+            InteractiveBindingActionsSection(pageKey: "feedback")
         }
     }
 

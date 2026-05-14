@@ -1057,16 +1057,22 @@ public func CompileActions(_ actions: [WebAction], builderId: String) -> String 
                 
             case .show(let ref):
                 let tShow = ref.map { "document.getElementById('\($0)')" } ?? builderId
+                script += "\(tShow).classList.remove('d-none');\n"
                 script += "\(tShow).style.display = '';\n"
             case .hide(let ref):
                 let tHide = ref.map { "document.getElementById('\($0)')" } ?? builderId
+                script += "\(tHide).classList.add('d-none');\n"
                 script += "\(tHide).style.display = 'none';\n"
             case .enable(let ref):
                 let tEnable = ref.map { "document.getElementById('\($0)')" } ?? builderId
                 script += "\(tEnable).removeAttribute('disabled');\n"
+                script += "\(tEnable).classList.remove('disabled');\n"
+                script += "\(tEnable).removeAttribute('aria-disabled');\n"
             case .disable(let ref):
                 let tDisable = ref.map { "document.getElementById('\($0)')" } ?? builderId
                 script += "\(tDisable).setAttribute('disabled','disabled');\n"
+                script += "\(tDisable).classList.add('disabled');\n"
+                script += "\(tDisable).setAttribute('aria-disabled','true');\n"
             case .focus(let ref):
                 let tFocus = ref.map { "document.getElementById('\($0)')" } ?? builderId
                 script += "(function(el){ if(el&&el.focus) el.focus(); })(\(tFocus));\n"
@@ -1238,7 +1244,6 @@ public enum ScrollAlignment: String {
     case end
     case nearest
 }
-
 
 
 

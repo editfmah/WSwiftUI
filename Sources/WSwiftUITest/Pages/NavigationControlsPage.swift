@@ -57,6 +57,8 @@ Footer {
                 .default()
                 .background(.darkgrey)
             }
+            
+            InteractiveBindingActionsSection(pageKey: "navigation")
         }
     }
 

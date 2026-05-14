@@ -49,6 +49,7 @@ WebSocket(url: "ws://localhost:4242/ws-ping", onRecieve: [
                     ListGroupItem("Feedback & overlays", variant: .secondary).onClick(.navigate("/controls/feedback"))
                     ListGroupItem("Navigation shell", variant: .secondary).onClick(.navigate("/controls/navigation"))
                     ListGroupItem("Realtime & actions", variant: .secondary).onClick(.navigate("/controls/realtime"))
+                    ListGroupItem("Actions showcase", variant: .secondary).onClick(.navigate("/controls/actions"))
                 }
             }
 
@@ -70,6 +71,8 @@ final class ExamplePage: CoreWebEndpoint, WebEndpoint, WebContent {
             ) {
                 Text("Every demo page in this app follows this pattern: endpoint + Template + fluent control composition.")
             }
+            
+            InteractiveBindingActionsSection(pageKey: "home")
         }
     }
 

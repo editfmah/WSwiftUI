@@ -83,8 +83,8 @@ final class HomePage: CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexable {
         return webpage {
             head(.title("WSwiftUI Example"))
             head(.metaViewport(content: "width=device-width, initial-scale=1"))
-            head(.styleLink(href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"))
-            head(.script(src: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"))
+            head(.styleLink(href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"))
+            head(.script(src: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"))
 
             VStack {
                 Text("Hello from WSwiftUI").font(.largeTitle).bold()
@@ -223,8 +223,8 @@ Use head helpers to configure page metadata and assets:
 ```swift
 head(.title("My App"))
 head(.metaViewport(content: "width=device-width, initial-scale=1"))
-head(.styleLink(href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"))
-head(.script(src: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"))
+head(.styleLink(href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"))
+head(.script(src: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"))
 ```
 
 Useful fluent layout modifiers:

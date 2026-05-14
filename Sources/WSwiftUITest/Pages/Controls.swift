@@ -87,6 +87,8 @@ Text("Framed element")
                     .padding(.vertical, 8)
                     .background(.lightgrey)
             }
+            
+            InteractiveBindingActionsSection(pageKey: "layout")
         }
     }
 

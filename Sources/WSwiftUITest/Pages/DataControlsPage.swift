@@ -185,6 +185,8 @@ Chart(
                     options: ChartOptions(maintainAspectRatio: true, title: "Sales split by plan")
                 )
             }
+            
+            InteractiveBindingActionsSection(pageKey: "data")
         }
     }
 

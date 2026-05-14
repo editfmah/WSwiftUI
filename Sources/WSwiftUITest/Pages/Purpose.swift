@@ -53,6 +53,10 @@ class ControlsOverviewPage: CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexa
                             Cell { Link("/controls/realtime", title: "/controls/realtime") }
                             Cell { Text("WebSocket, Text(format:bindings), actions/events integration") }
                         }
+                        Row {
+                            Cell { Link("/controls/actions", title: "/controls/actions") }
+                            Cell { Text("Comprehensive WebAction examples: variables, visibility, animation, content, storage, and sequencing") }
+                        }
                     }
                 }
                 .striped()
@@ -74,6 +78,8 @@ Template {
             ) {
                 Text("Template controls are active across all pages in this demo app.")
             }
+            
+            InteractiveBindingActionsSection(pageKey: "overview")
         }
     }
 

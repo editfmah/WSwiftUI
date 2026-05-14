@@ -14,7 +14,7 @@ class RealtimeControlsPage: CoreWebEndpoint, WebEndpoint, WebContent, MenuIndexa
 
         return DemoPage(
             title: "Realtime & Action Controls",
-            subtitle: "WebSocket integration plus event/action composition."
+            subtitle: "WebSocket integration plus event/action composition for live updates."
         ) {
             DemoSection(
                 "WebSocket + bound Text",
@@ -58,6 +58,8 @@ Text("Status: $0", status)
 
                 Text("Status: $0", status).font(.subtitle)
             }
+            
+            InteractiveBindingActionsSection(pageKey: "realtime")
         }
     }
 

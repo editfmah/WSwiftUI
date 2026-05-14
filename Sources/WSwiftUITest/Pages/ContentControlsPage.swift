@@ -124,6 +124,8 @@ let server = WSwiftServer(port: 4242)
 server.register(HomePage())
 """)
             }
+            
+            InteractiveBindingActionsSection(pageKey: "content")
         }
     }
 

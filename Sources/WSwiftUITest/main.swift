@@ -18,6 +18,7 @@ server.register(FormControlsPage())
 server.register(FeedbackControlsPage())
 server.register(NavigationControlsPage())
 server.register(RealtimeControlsPage())
+server.register(ActionsShowcasePage())
 server.register(ControlsAPI())
 server.registerWebSocket(WebsocketEndpointExample())
 
